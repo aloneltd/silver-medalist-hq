@@ -6,9 +6,10 @@ interface Props {
   job: Job;
   candidate: Candidate;
   onDraftEmail?: (candidateName: string, jobTitle: string, strategy: string) => void;
+  onDrop?: () => void;
 }
 
-const MatchCard: React.FC<Props> = ({ match, job, candidate, onDraftEmail }) => {
+const MatchCard: React.FC<Props> = ({ match, job, candidate, onDraftEmail, onDrop }) => {
   const [showPitch, setShowPitch] = useState(false);
   const [activePitch, setActivePitch] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -130,18 +131,32 @@ const MatchCard: React.FC<Props> = ({ match, job, candidate, onDraftEmail }) => 
           ))}
         </div>
 
-        {/* Draft Email Button */}
-        {onDraftEmail && (
-          <button
-            onClick={() => onDraftEmail(candidate.name, job.title, match.redeployment_strategy)}
-            className="w-full py-3 mb-5 border-2 border-dashed border-slate-200 rounded-2xl text-xs font-black text-slate-400 uppercase tracking-widest hover:border-orange-400 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-            </svg>
-            Draft Outreach Email
-          </button>
-        )}
+        {/* Actions row */}
+        <div className="flex gap-3 mb-5">
+          {onDraftEmail && (
+            <button
+              onClick={() => onDraftEmail(candidate.name, job.title, match.redeployment_strategy)}
+              className="flex-1 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-xs font-black text-slate-400 uppercase tracking-widest hover:border-orange-400 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+              </svg>
+              Draft Email
+            </button>
+          )}
+          {onDrop && (
+            <button
+              onClick={onDrop}
+              title="Drop this match"
+              className="px-4 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-xs font-black text-slate-400 uppercase tracking-widest hover:border-red-300 hover:text-red-400 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+              Drop
+            </button>
+          )}
+        </div>
 
         {/* Footer */}
         <div className="pt-5 border-t border-slate-100 flex items-center justify-between">
