@@ -67,7 +67,11 @@ export const dataService = {
   getMatches(): MatchResponse | null {
     try {
       const raw = localStorage.getItem(MATCHES_KEY);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Validate shape — must have a matches array
+      if (!parsed || !Array.isArray(parsed.matches)) return null;
+      return parsed as MatchResponse;
     } catch {
       return null;
     }

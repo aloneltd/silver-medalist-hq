@@ -96,7 +96,7 @@ const App: React.FC = () => {
   };
 
   const validMatches = useMemo(() => {
-    if (!results) return [];
+    if (!results || !Array.isArray(results.matches)) return [];
     return results.matches.filter(m =>
       jobs.some(j => j.job_id === m.job_id) &&
       candidates.some(c => c.candidate_id === m.candidate_id)
