@@ -2,6 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 const MAX_TOKENS = 4096
 
+const responseCache = new Map<string, { text: string; expiresAt: number }>()
+const CACHE_TTL = 300_000
+
 // Free-tier guard: 10 req/min per IP
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 function checkRateLimit(ip: string): boolean {
@@ -46,6 +49,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     payload.systemInstruction = { parts: [{ text: systemInstruction }] }
   }
 
+  const lastMsg = (messages as { role: string; text: string }[]).filter((m) => m.role === 'user').at(-1)?.text ?? ''
+  const cacheKey = `gemini-2.5-flash::${systemInstruction ?? ''}::${lastMsg}`
+  const now = Date.now()
+  const cached = responseCache.get(cacheKey)
+  if (cached && now < cached.expiresAt) return res.status(200).json({ text: cached.text })
+
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 20000)
 
@@ -68,6 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const data = await r.json()
     const text = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || ''
+    if (text) responseCache.set(cacheKey, { text, expiresAt: now + CACHE_TTL })
     return res.status(200).json({ text })
   } catch (err: any) {
     console.error('AI proxy error:', err)
