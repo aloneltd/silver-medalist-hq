@@ -216,6 +216,9 @@ export async function stream(o: AiOptions, onChunk: (t: string) => void): Promis
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), o.timeoutMs ?? 25_000)
   const notes: string[] = []
+  // Once any delta has reached the client we can never restart on another model —
+  // the reader would see the answer twice.
+  let emitted = false
   try {
     if (process.env.GROQ_API_KEY && !o.geminiOnly && !o.useSearch) {
       for (const model of GROQ_MODELS) {
@@ -240,16 +243,19 @@ export async function stream(o: AiOptions, onChunk: (t: string) => void): Promis
               try {
                 const d = JSON.parse(payload)
                 const delta = d?.choices?.[0]?.delta?.content
-                if (delta) { full += delta; onChunk(delta) }
+                if (delta) { full += delta; emitted = true; onChunk(delta) }
               } catch { /* partial frame */ }
             }
           }
           if (full) { cacheSet(key, full, model); return { text: full, model, cached: false } }
           notes.push(`${model}:empty-stream`)
         } catch (e) { notes.push(`${model}:${(e as Error).name}`) }
+        if (emitted) break
       }
     }
   } finally { clearTimeout(timer) }
+
+  if (emitted) throw new AiError(502, 'The answer was cut off — please try again.', notes.join(' | '))
 
   // No stream available — fall back to a normal completion and emit it in one go.
   const res = await complete(o)
