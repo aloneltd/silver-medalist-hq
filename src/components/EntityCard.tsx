@@ -12,11 +12,17 @@ const EntityCard: React.FC<Props> = ({ data, type, onDelete }) => {
   const job = data as Job;
   const cand = data as Candidate;
 
-  const dealbreakers = isJob ? job.dealbreakers : cand.dealbreakers;
-  const location = isJob ? job.location : cand.locations.join(', ');
-  const title = isJob ? job.title : cand.name;
-  const id = isJob ? job.job_id : cand.candidate_id;
-  const isMedalist = !isJob && cand.silver_medalist.is_true;
+  // The Command Center's raw-JSON editor lets an admin hand-edit this data directly, so a
+  // record can arrive missing any field — render something sensible instead of crashing
+  // the whole board (React ErrorBoundary would otherwise take down every card at once).
+  const dealbreakers = (isJob ? job.dealbreakers : cand.dealbreakers) ?? [];
+  const location = isJob ? (job.location || 'Unknown') : (cand.locations ?? []).join(', ') || 'Unknown';
+  const title = (isJob ? job.title : cand.name) || 'Untitled';
+  const id = (isJob ? job.job_id : cand.candidate_id) || '—';
+  const isMedalist = !isJob && !!cand.silver_medalist?.is_true;
+  const ownerName = data.recruiter_owner?.name || 'Unassigned';
+  const skills = (!isJob && cand.skills) || [];
+  const mustHaves = (isJob && job.must_haves) || [];
 
   return (
     <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-orange-500/20 transition-all cursor-default group">
@@ -55,34 +61,34 @@ const EntityCard: React.FC<Props> = ({ data, type, onDelete }) => {
             </svg>
             <span className="font-mono">
               {isJob
-                ? `${typeof job.comp_range.min === 'number' ? '$' + job.comp_range.min.toLocaleString() : 'N/A'}–${typeof job.comp_range.max === 'number' ? '$' + job.comp_range.max.toLocaleString() : 'N/A'} ${job.comp_range.currency}`
-                : `${typeof cand.comp_expectation.min === 'number' ? '$' + cand.comp_expectation.min.toLocaleString() : 'N/A'}+ ${cand.comp_expectation.currency}`}
+                ? `${typeof job.comp_range?.min === 'number' ? '$' + job.comp_range.min.toLocaleString() : 'N/A'}–${typeof job.comp_range?.max === 'number' ? '$' + job.comp_range.max.toLocaleString() : 'N/A'} ${job.comp_range?.currency || ''}`
+                : `${typeof cand.comp_expectation?.min === 'number' ? '$' + cand.comp_expectation.min.toLocaleString() : 'N/A'}+ ${cand.comp_expectation?.currency || ''}`}
             </span>
           </div>
         </div>
 
-        {!isJob && cand.skills.length > 0 && (
+        {!isJob && skills.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-4">
-            {cand.skills.slice(0, 4).map((skill, idx) => (
+            {skills.slice(0, 4).map((skill, idx) => (
               <span key={idx} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">
                 {skill}
               </span>
             ))}
-            {cand.skills.length > 4 && (
-              <span className="text-xs text-slate-400 font-medium">+{cand.skills.length - 4}</span>
+            {skills.length > 4 && (
+              <span className="text-xs text-slate-400 font-medium">+{skills.length - 4}</span>
             )}
           </div>
         )}
 
-        {isJob && job.must_haves.length > 0 && (
+        {isJob && mustHaves.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-4">
-            {job.must_haves.slice(0, 3).map((skill, idx) => (
+            {mustHaves.slice(0, 3).map((skill, idx) => (
               <span key={idx} className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md font-medium">
                 {skill}
               </span>
             ))}
-            {job.must_haves.length > 3 && (
-              <span className="text-xs text-slate-400 font-medium">+{job.must_haves.length - 3}</span>
+            {mustHaves.length > 3 && (
+              <span className="text-xs text-slate-400 font-medium">+{mustHaves.length - 3}</span>
             )}
           </div>
         )}
@@ -108,9 +114,9 @@ const EntityCard: React.FC<Props> = ({ data, type, onDelete }) => {
         <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-black">
-              {data.recruiter_owner.name.split(' ').map(n => n[0]).join('')}
+              {ownerName.split(' ').map(n => n[0]).join('')}
             </div>
-            <span className="text-xs text-slate-500 font-black uppercase tracking-tighter">{data.recruiter_owner.name}</span>
+            <span className="text-xs text-slate-500 font-black uppercase tracking-tighter">{ownerName}</span>
           </div>
           {onDelete && (
             <button

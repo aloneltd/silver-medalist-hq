@@ -8,15 +8,31 @@ interface CallOpts {
   maxTokens?: number;
 }
 
+const NETWORK_ERROR_MESSAGE = "Can't reach the AI service right now — check your connection and try again.";
+
+/**
+ * A failed `fetch()` call throws a raw browser TypeError ("Failed to fetch", "NetworkError
+ * when attempting to fetch resource", etc.) that means nothing to a recruiter and must never
+ * reach the UI verbatim. Route every /api/ai call through this so a dropped connection, a
+ * blocked request, or a DNS failure always surfaces the same friendly copy.
+ */
+async function fetchAI(body: Record<string, unknown>): Promise<Response> {
+  try {
+    return await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  } catch {
+    throw new Error(NETWORK_ERROR_MESSAGE);
+  }
+}
+
 async function callAI(
   messages: Array<{ role: string; text: string }>,
   { systemInstruction, temperature = 0.7, json = false, maxTokens = 8192 }: CallOpts = {}
 ): Promise<string> {
-  const res = await fetch('/api/ai', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, systemInstruction, temperature, maxTokens, json })
-  });
+  const res = await fetchAI({ messages, systemInstruction, temperature, maxTokens, json });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error || `API error ${res.status}`);
@@ -31,20 +47,21 @@ async function streamAI(
   onDelta: (chunk: string) => void,
   { systemInstruction, temperature = 0.7, maxTokens = 2048 }: CallOpts = {}
 ): Promise<string> {
-  const res = await fetch('/api/ai', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, systemInstruction, temperature, maxTokens, stream: true })
-  });
+  const res = await fetchAI({ messages, systemInstruction, temperature, maxTokens, stream: true });
   if (!res.ok || !res.body) throw new Error('The AI service is unavailable right now — please try again.');
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let full = '';
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    if (chunk) { full += chunk; onDelta(chunk); }
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      if (chunk) { full += chunk; onDelta(chunk); }
+    }
+  } catch {
+    if (!full) throw new Error(NETWORK_ERROR_MESSAGE);
+    // Partial answer already streamed to the caller — let them keep what arrived.
   }
   return full;
 }

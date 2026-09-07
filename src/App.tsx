@@ -369,28 +369,28 @@ function AppInner() {
         />
 
         {results && activeTab !== 'settings' && (
-          <div className="bg-white px-8 py-4 flex items-center justify-between border-b border-slate-200 shadow-sm">
-            <div className="flex items-center gap-10">
-              <div>
+          <div className="bg-white px-4 md:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 shadow-sm">
+            <div className="flex items-center gap-4 md:gap-10 overflow-x-auto no-scrollbar">
+              <div className="flex-shrink-0">
                 <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Projected Savings</div>
                 <div className="text-2xl font-black text-slate-900 font-mono tracking-tighter">
                   ${(results.summary.estimated_savings_usd || 0).toLocaleString()}
                 </div>
               </div>
-              <div className="h-8 w-px bg-slate-200" />
-              <div>
+              <div className="h-8 w-px bg-slate-200 flex-shrink-0" />
+              <div className="flex-shrink-0">
                 <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Matches Found</div>
                 <div className="text-2xl font-black text-orange-600">{validMatches.length}</div>
               </div>
-              <div className="h-8 w-px bg-slate-200" />
-              <div>
+              <div className="h-8 w-px bg-slate-200 flex-shrink-0" />
+              <div className="flex-shrink-0">
                 <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Silver Medalists</div>
                 <div className="text-2xl font-black text-amber-600">{results.summary.medalist_redeployment_count || medalists.length}</div>
               </div>
               {droppedIds.size > 0 && (
                 <>
-                  <div className="h-8 w-px bg-slate-200" />
-                  <div>
+                  <div className="h-8 w-px bg-slate-200 flex-shrink-0" />
+                  <div className="flex-shrink-0">
                     <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Dropped</div>
                     <div className="text-2xl font-black text-slate-400">{droppedIds.size}</div>
                   </div>
@@ -398,10 +398,10 @@ function AppInner() {
               )}
               {validMatches.length > 0 && (
                 <>
-                  <div className="h-8 w-px bg-slate-200" />
+                  <div className="h-8 w-px bg-slate-200 flex-shrink-0" />
                   <button
                     onClick={exportMatchesCSV}
-                    className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-orange-600 transition-colors"
+                    className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-orange-600 transition-colors flex-shrink-0"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
@@ -411,11 +411,11 @@ function AppInner() {
                 </>
               )}
             </div>
-            <div className="relative">
+            <div className="relative w-full md:w-64 flex-shrink-0">
               <input
                 type="text"
                 placeholder="Search..."
-                className="pl-9 pr-4 py-2.5 bg-slate-100 rounded-2xl border-none text-sm w-64 focus:ring-2 focus:ring-orange-500 transition-all outline-none"
+                className="pl-9 pr-4 py-2.5 bg-slate-100 rounded-2xl border-none text-sm w-full focus:ring-2 focus:ring-orange-500 transition-all outline-none"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
