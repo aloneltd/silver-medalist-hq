@@ -22,12 +22,13 @@ const EntityCard: React.FC<Props> = ({ data, type, onDelete }) => {
     <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-orange-500/20 transition-all cursor-default group">
       <div className={`h-1.5 ${isJob ? 'bg-orange-500' : isMedalist ? 'bg-amber-500' : 'bg-blue-500'} group-hover:h-2 transition-all`}></div>
       <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-black text-slate-900 leading-tight tracking-tight truncate">{title}</h3>
+        {/* Wraps on narrow cards: the badges used to squeeze the name down to "El…" */}
+        <div className="flex flex-wrap justify-between items-start gap-y-2 mb-4">
+          <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
+            <h3 className="text-sm font-black text-slate-900 leading-tight tracking-tight break-words">{title}</h3>
             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">{id}</p>
           </div>
-          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap sm:ml-2 sm:flex-shrink-0">
             {isMedalist && (
               <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-lg bg-amber-50 text-amber-600">
                 🥈 Silver

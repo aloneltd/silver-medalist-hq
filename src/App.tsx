@@ -30,6 +30,9 @@ function AppInner() {
   const [driveLoading, setDriveLoading] = useState(true);
   const [driveError, setDriveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('board');
+  // On phones the 256px sidebar left barely a third of the screen for the board,
+  // so below md it becomes a slide-over drawer.
+  const [navOpen, setNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isIngestModalOpen, setIsIngestModalOpen] = useState(false);
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
@@ -241,8 +244,34 @@ function AppInner() {
 
   return (
     <div className="min-h-screen flex bg-slate-50 font-sans">
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 inset-x-0 z-40 flex items-center gap-3 px-4 py-3 bg-[#0f172a] text-white shadow-lg">
+        <button
+          onClick={() => setNavOpen(true)}
+          aria-label="Open menu"
+          className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
+        </button>
+        <span className="text-sm font-black tracking-tighter uppercase italic">
+          Silver <span className="text-orange-500">HQ</span>
+        </span>
+        <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-slate-400">
+          {navItems.find(n => n.id === activeTab)?.label}
+        </span>
+      </div>
+
+      {/* Drawer backdrop */}
+      {navOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-[#0f172a] text-white flex flex-col sticky top-0 h-screen shadow-2xl z-50 flex-shrink-0">
+      <aside
+        className={`w-64 bg-[#0f172a] text-white flex flex-col shadow-2xl flex-shrink-0 h-screen
+          fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200
+          md:sticky md:top-0 md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         <div className="p-8 border-b border-slate-800">
           <h1 className="text-xl font-black tracking-tighter uppercase italic leading-none">
             Silver <span className="text-orange-500">HQ</span>
@@ -252,21 +281,21 @@ function AppInner() {
 
         <div className="px-4 pt-6 space-y-2">
           <button
-            onClick={() => setIsIngestModalOpen(true)}
+            onClick={() => { setNavOpen(false); setIsIngestModalOpen(true) }}
             className="w-full flex items-center gap-3 px-4 py-3.5 mb-1 rounded-2xl bg-orange-600 text-white shadow-xl shadow-orange-900/40 text-xs font-black uppercase tracking-widest hover:scale-[1.02] transition-all"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             Ingest JD
           </button>
           <button
-            onClick={() => setIsAddCandidateOpen(true)}
+            onClick={() => { setNavOpen(false); setIsAddCandidateOpen(true) }}
             className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-slate-700 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-600 transition-all"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             Add Candidate
           </button>
           <button
-            onClick={() => setIsBulkUploadOpen(true)}
+            onClick={() => { setNavOpen(false); setIsBulkUploadOpen(true) }}
             className="w-full flex items-center gap-3 px-4 py-3.5 mb-4 rounded-2xl bg-slate-800 border border-slate-600 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-700 transition-all"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.34C18 2.54 15.46 1 13 1c-1.36 0-2.5.56-3.41 1.41L8 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM9.42 3.55C10.1 2.86 11 2.5 13 2.5c1.88 0 3.5 1.12 3.5 2.16 0 .39-.09.74-.2 1.08L9 4.18l.42-.63zM20 18H4V6h4l1.09 1.09L10.18 8H20v10z"/></svg>
@@ -278,7 +307,7 @@ function AppInner() {
           {navItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { setNavOpen(false); setActiveTab(item.id) }}
               className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-xs font-black uppercase tracking-widest ${
                 activeTab === item.id ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
@@ -332,7 +361,7 @@ function AppInner() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0">
         <DashboardHeader
           summary={results?.summary}
           loading={loading}
@@ -514,13 +543,13 @@ function AppInner() {
                     </div>
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => setIsBulkUploadOpen(true)}
+                        onClick={() => { setNavOpen(false); setIsBulkUploadOpen(true) }}
                         className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-700 transition-all"
                       >
                         Bulk Ingest
                       </button>
                       <button
-                        onClick={() => setIsIngestModalOpen(true)}
+                        onClick={() => { setNavOpen(false); setIsIngestModalOpen(true) }}
                         className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all shadow-lg"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -555,13 +584,13 @@ function AppInner() {
                     </div>
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => setIsBulkUploadOpen(true)}
+                        onClick={() => { setNavOpen(false); setIsBulkUploadOpen(true) }}
                         className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-700 transition-all"
                       >
                         Bulk Upload
                       </button>
                       <button
-                        onClick={() => setIsAddCandidateOpen(true)}
+                        onClick={() => { setNavOpen(false); setIsAddCandidateOpen(true) }}
                         className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all shadow-lg"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>

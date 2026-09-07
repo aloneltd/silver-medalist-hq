@@ -122,7 +122,10 @@ function geminiBody(o: AiOptions) {
     generationConfig: {
       temperature: o.temperature ?? 0.7,
       maxOutputTokens: o.maxTokens ?? 1024,
-      thinkingConfig: { thinkingBudget: 0 },
+      // Thinking off keeps latency down and stops reasoning eating the token budget —
+      // but gemini-2.5-flash REJECTS a zero budget when Search grounding is on, because
+      // it needs that budget to plan its queries. Omit it in that one case.
+      ...(o.useSearch ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
       ...(o.json ? { responseMimeType: 'application/json' } : {}),
     },
   }
