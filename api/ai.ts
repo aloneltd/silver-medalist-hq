@@ -59,20 +59,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const timeout = setTimeout(() => controller.abort(), 20000)
 
   try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
+    const call = (model: string) =>
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: controller.signal,
-      }
-    )
+      })
+
+    // Flash first; on quota/transient upstream errors fall back once to Flash-Lite
+    let r = await call('gemini-2.5-flash')
+    if (!r.ok && (r.status === 429 || r.status >= 500)) {
+      console.warn('Gemini flash returned', r.status, '— retrying with flash-lite')
+      r = await call('gemini-2.5-flash-lite')
+    }
 
     if (!r.ok) {
       const errBody = await r.text()
-      console.error('Gemini API error:', r.status, errBody)
-      return res.status(r.status).json({ error: `Gemini API error: ${r.status}` })
+      console.error('Gemini API error:', r.status, errBody.slice(0, 300))
+      const friendly = r.status === 429
+        ? 'The AI is rate-limited right now — wait a minute and try again.'
+        : 'The AI service had a hiccup — please try again.'
+      return res.status(r.status >= 500 ? 502 : r.status).json({ error: friendly })
     }
 
     const data = await r.json()
