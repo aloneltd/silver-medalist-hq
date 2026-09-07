@@ -9,7 +9,9 @@
 - [x] TypeScript build passes cleanly
 - [x] Pushed to GitHub (aloneltd/silver-medalist-hq)
 - [x] Deployed to Vercel (silver-medalist-hq.vercel.app)
-- [ ] GEMINI_API_KEY env var needs to be added to Vercel
+- [x] GEMINI_API_KEY + VITE_GOOGLE_CLIENT_ID set on Vercel
+- [ ] Authorize the JS origin on the OAuth client (Google Cloud Console) to enable Drive sign-in
+- [ ] Vercel Git integration is not firing for this repo — re-connect in Vercel → Settings → Git (deployed via API meanwhile)
 
 ## Required Environment Variables
 
@@ -17,7 +19,8 @@
 
 | Variable | Value | Notes |
 |---|---|---|
-| `GEMINI_API_KEY` | Your Gemini API key | Same key as used in architect-forge — add it in Vercel dashboard |
+| `GEMINI_API_KEY` | Your Gemini API key | Set (shared key) |
+| `VITE_GOOGLE_CLIENT_ID` | OAuth web client id `715096174344-pp2585bv5l2ji2ss1c734pr9mj2etn6e…` | Set 2026-09-07. Google sign-in (Drive sync) also needs `https://silver-medalist-hq.vercel.app` under **Authorized JavaScript origins** on that client — until then Google shows `origin_mismatch` and the app runs in the local workspace |
 
 **To add:** https://vercel.com/m-7231s-projects/silver-medalist-hq/settings/environment-variables
 
