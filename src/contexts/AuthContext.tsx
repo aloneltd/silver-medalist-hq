@@ -3,6 +3,7 @@ import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 
 const ALLOWED_EMAIL = 'm@alone.ltd';
 const TOKEN_KEY = 'smhq_gtoken';
+const LOCAL_MODE_KEY = 'smhq_local_mode';
 
 interface TokenData {
   access_token: string;
@@ -18,24 +19,35 @@ export interface AuthUser {
   picture: string;
 }
 
+export type AuthMode = 'google' | 'local';
+
 interface AuthContextValue {
   user: AuthUser | null;
   accessToken: string | null;
+  /** 'google' = signed in with Google, Drive sync on. 'local' = this-browser-only workspace. */
+  mode: AuthMode;
+  /** false when VITE_GOOGLE_CLIENT_ID is not set on this deployment. */
+  googleConfigured: boolean;
   isLoading: boolean;
   error: string | null;
   signIn: () => void;
+  enterLocalMode: () => void;
   signOut: () => void;
   clearError: () => void;
 }
 
+const LOCAL_USER: AuthUser = { email: 'local', name: 'Local workspace', picture: '' };
+
 const AuthContext = createContext<AuthContextValue>({
-  user: null, accessToken: null, isLoading: true, error: null,
-  signIn: () => {}, signOut: () => {}, clearError: () => {}
+  user: null, accessToken: null, mode: 'local', googleConfigured: false, isLoading: true, error: null,
+  signIn: () => {}, enterLocalMode: () => {}, signOut: () => {}, clearError: () => {}
 });
 
-function AuthProvider({ children }: { children: React.ReactNode }) {
+/** Shared state for both providers: restores a saved Google token or the local-mode flag. */
+function useAuthState() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [mode, setMode] = useState<AuthMode>('local');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,13 +59,43 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.expiry > Date.now()) {
           setUser({ email: data.email, name: data.name, picture: data.picture });
           setAccessToken(data.access_token);
+          setMode('google');
         } else {
           localStorage.removeItem(TOKEN_KEY);
         }
       }
+      if (!saved && localStorage.getItem(LOCAL_MODE_KEY) === '1') {
+        setUser(LOCAL_USER);
+        setMode('local');
+      }
     } catch {}
     setIsLoading(false);
   }, []);
+
+  const enterLocalMode = useCallback(() => {
+    try { localStorage.setItem(LOCAL_MODE_KEY, '1'); } catch {}
+    setUser(LOCAL_USER);
+    setAccessToken(null);
+    setMode('local');
+    setError(null);
+  }, []);
+
+  const signOut = useCallback(() => {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(LOCAL_MODE_KEY);
+    } catch {}
+    setUser(null);
+    setAccessToken(null);
+    setMode('local');
+  }, []);
+
+  return { user, setUser, accessToken, setAccessToken, mode, setMode, isLoading, error, setError, enterLocalMode, signOut };
+}
+
+/** Google-enabled provider (needs GoogleOAuthProvider above it). */
+function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
+  const s = useAuthState();
 
   const login = useGoogleLogin({
     scope: 'openid profile email https://www.googleapis.com/auth/drive.file',
@@ -64,7 +106,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         }).then(r => r.json());
 
         if (userInfo.email !== ALLOWED_EMAIL) {
-          setError(`Access denied — this tool is private. Sign in with ${ALLOWED_EMAIL}.`);
+          s.setError(`Drive sync is private to ${ALLOWED_EMAIL}. You can still use the local workspace below.`);
           return;
         }
 
@@ -76,26 +118,53 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           picture: userInfo.picture || ''
         };
         localStorage.setItem(TOKEN_KEY, JSON.stringify(tokenData));
-        setUser({ email: tokenData.email, name: tokenData.name, picture: tokenData.picture });
-        setAccessToken(tokenResponse.access_token);
-        setError(null);
+        localStorage.removeItem(LOCAL_MODE_KEY);
+        s.setUser({ email: tokenData.email, name: tokenData.name, picture: tokenData.picture });
+        s.setAccessToken(tokenResponse.access_token);
+        s.setMode('google');
+        s.setError(null);
       } catch (e: any) {
-        setError('Sign-in failed: ' + (e.message || 'Unknown error'));
+        s.setError('Sign-in failed: ' + (e.message || 'Unknown error'));
       }
     },
-    onError: () => setError('Google sign-in failed. Please try again.')
+    onError: (err) => {
+      s.setError(
+        `Google sign-in failed${err?.error ? ` (${err.error})` : ''}. ` +
+        'If Google showed "redirect_uri_mismatch", this site\'s origin is not authorized on the OAuth client yet. ' +
+        'You can continue in the local workspace.'
+      );
+    },
+    onNonOAuthError: (err) => {
+      s.setError(
+        err.type === 'popup_closed'
+          ? 'The Google window was closed before sign-in finished. Try again, or continue in the local workspace.'
+          : 'Could not open the Google sign-in window (popup blocked?). You can continue in the local workspace.'
+      );
+    }
   });
-
-  const signOut = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    setUser(null);
-    setAccessToken(null);
-  }, []);
 
   return (
     <AuthContext.Provider value={{
-      user, accessToken, isLoading, error,
-      signIn: login, signOut, clearError: () => setError(null)
+      user: s.user, accessToken: s.accessToken, mode: s.mode, googleConfigured: true,
+      isLoading: s.isLoading, error: s.error,
+      signIn: () => login(), enterLocalMode: s.enterLocalMode, signOut: s.signOut,
+      clearError: () => s.setError(null)
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+/** Fallback provider when no Google client id is configured: local workspace only. */
+function LocalAuthProvider({ children }: { children: React.ReactNode }) {
+  const s = useAuthState();
+  return (
+    <AuthContext.Provider value={{
+      user: s.user, accessToken: null, mode: 'local', googleConfigured: false,
+      isLoading: s.isLoading, error: s.error,
+      signIn: () => s.setError('Google sign-in is not configured on this deployment (VITE_GOOGLE_CLIENT_ID missing). Use the local workspace.'),
+      enterLocalMode: s.enterLocalMode, signOut: s.signOut,
+      clearError: () => s.setError(null)
     }}>
       {children}
     </AuthContext.Provider>
@@ -103,18 +172,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function AuthContextWrapper({ children }: { children: React.ReactNode }) {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const clientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim();
   if (!clientId) {
-    return (
-      <div style={{ padding: 40, fontFamily: 'monospace', background: '#0f172a', color: '#f97316', minHeight: '100vh' }}>
-        <h2>⚠ VITE_GOOGLE_CLIENT_ID not set</h2>
-        <p style={{ color: '#94a3b8' }}>Add it to your Vercel environment variables and redeploy.</p>
-      </div>
-    );
+    return <LocalAuthProvider>{children}</LocalAuthProvider>;
   }
   return (
     <GoogleOAuthProvider clientId={clientId}>
-      <AuthProvider>{children}</AuthProvider>
+      <GoogleAuthProvider>{children}</GoogleAuthProvider>
     </GoogleOAuthProvider>
   );
 }

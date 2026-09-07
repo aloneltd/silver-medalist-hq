@@ -20,7 +20,7 @@ type ActiveTab = 'board' | 'vault' | 'candidates' | 'analytics' | 'settings';
 const aiService = new AIService();
 
 function AppInner() {
-  const { user, accessToken, signOut } = useAuth();
+  const { user, accessToken, mode, signOut } = useAuth();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -38,9 +38,21 @@ function AppInner() {
   const [error, setError] = useState<string | null>(null);
   const [droppedIds, setDroppedIds] = useState<Set<string>>(new Set());
 
-  // Load from Drive on auth
+  // Load from Drive on auth — or from this browser in local mode
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      if (user) {
+        // Local workspace: localStorage only, seeded with sample data on first run
+        dataService.init();
+        setJobs(dataService.getJobs());
+        setCandidates(dataService.getCandidates());
+        const saved = dataService.getMatches();
+        if (saved) setResults(saved);
+        setDriveError(null);
+        setDriveLoading(false);
+      }
+      return;
+    }
     setDriveLoading(true);
     driveService.setToken(accessToken);
     driveService.loadAll()
@@ -70,7 +82,7 @@ function AppInner() {
         if (saved) setResults(saved);
       })
       .finally(() => setDriveLoading(false));
-  }, [accessToken]);
+  }, [accessToken, user]);
 
   const syncToDrive = useCallback((j: Job[], c: Candidate[], m: MatchResponse | null) => {
     if (!accessToken) return;
@@ -299,8 +311,10 @@ function AppInner() {
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-black text-white truncate">{user?.name || 'Mark'}</div>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  <span className="text-xs text-slate-500 font-medium">Drive synced</span>
+                  <div className={`w-1.5 h-1.5 rounded-full ${mode === 'google' ? 'bg-green-500' : 'bg-amber-400'}`} />
+                  <span className="text-xs text-slate-500 font-medium">
+                    {mode === 'google' ? 'Drive synced' : 'Local mode · this browser only'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -308,7 +322,7 @@ function AppInner() {
               onClick={signOut}
               className="w-full text-xs font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest text-left"
             >
-              Sign Out
+              {mode === 'google' ? 'Sign Out' : 'Leave workspace'}
             </button>
           </div>
           <div className="text-center">
