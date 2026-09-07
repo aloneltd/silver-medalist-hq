@@ -131,7 +131,7 @@ ${input.text}`;
     return extractJson<Partial<Job>>(text, 'the job description');
   }
 
-  private async runMatchBatch(data: MatchingInput, jobs: MatchingInput['jobs']): Promise<MatchResponse> {
+  private async runMatchBatch(data: MatchingInput, jobs: MatchingInput['jobs'], attempt = 0): Promise<MatchResponse> {
     const systemInst = `${SYSTEM_INSTRUCTION}\n\nReturn ONLY valid JSON matching this exact schema:\n${MATCH_SCHEMA}`;
 
     const prompt = `Run silver-medalist matching on this data. Match threshold: ${data.config.match_threshold}. Today: ${data.config.today}. Org size: ${data.config.org_size}.
@@ -144,17 +144,31 @@ ${JSON.stringify(data.candidates, null, 2)}
 
 Active Bridge: ${data.activeBridge}
 
-Return ONLY valid JSON. No markdown, no explanation.`;
+Score EVERY candidate against EVERY job. Return each pair that scores at or above the
+threshold. If no pair clears the threshold, still return the ${Math.min(3, (data.jobs?.length ?? 1) * (data.candidates?.length ?? 1))} strongest pairs with their
+honest scores — a recruiter needs to see the ranking, never an empty board.
+"matches_above_threshold" counts only the pairs that actually cleared it.
 
+Return ONLY valid JSON. No markdown, no explanation.${attempt ? `\n\nRun ${attempt + 1}: the previous pass returned nothing. Be decisive and rank the pairs.` : ''}`;
+
+    // The retry line also changes the prompt hash, so the server-side response cache
+    // cannot hand back the same empty answer.
     const text = await callAI([{ role: 'user', text: prompt }], {
-      systemInstruction: systemInst, temperature: 0.4, json: true, maxTokens: 8192,
+      systemInstruction: systemInst, temperature: attempt ? 0.6 : 0.4, json: true, maxTokens: 8192,
     });
     return extractJson<MatchResponse>(text, 'the match results');
   }
 
   async runMatch(data: MatchingInput): Promise<MatchResponse> {
     const jobs = data.jobs ?? [];
-    if (jobs.length <= JOBS_PER_BATCH) return this.runMatchBatch(data, jobs);
+    if (jobs.length <= JOBS_PER_BATCH) {
+      const first = await this.runMatchBatch(data, jobs);
+      // An empty board is never a useful answer for a small vault — one cheap retry
+      // (about a second) turns a dead screen into a ranking.
+      if (first.matches?.length) return first;
+      const retry = await this.runMatchBatch(data, jobs, 1).catch(() => null);
+      return retry?.matches?.length ? retry : first;
+    }
 
     // Fan out over job batches in parallel, then merge — one giant prompt for a
     // large vault truncates and times out.
