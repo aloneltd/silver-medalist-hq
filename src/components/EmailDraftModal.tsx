@@ -26,9 +26,17 @@ const EmailDraftModal: React.FC<Props> = ({ isOpen, onClose, candidateName, jobT
   const generateDraft = async () => {
     setLoading(true);
     setError(null);
+    setDraft('');
     try {
-      const result = await aiService.draftOutreachEmail(candidateName, jobTitle, strategy);
-      setDraft(result);
+      // Stream: the first line of the email lands in well under a second, so the
+      // recruiter reads while it is still being written.
+      let acc = '';
+      await aiService.draftOutreachEmail(candidateName, jobTitle, strategy, chunk => {
+        acc += chunk;
+        setLoading(false);
+        setDraft(acc);
+      });
+      if (!acc) throw new Error('The AI returned an empty draft — please try again.');
     } catch (e: any) {
       setError(e.message || 'Failed to generate email draft');
     } finally {

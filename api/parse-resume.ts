@@ -63,17 +63,29 @@ Rules:
           { text: prompt }
         ]
       }],
-      generationConfig: { temperature: 0.15, maxOutputTokens: 4096 }
+      generationConfig: {
+        temperature: 0.15,
+        maxOutputTokens: 4096,
+        // 2.5 Flash is a thinking model: without this its reasoning eats the output
+        // budget and the JSON comes back truncated.
+        thinkingConfig: { thinkingBudget: 0 },
+        responseMimeType: 'application/json'
+      }
     };
 
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+    // Resume parsing needs vision, so this stays on Gemini — but never on a single model.
+    const call = (model: string) => fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(25000) }
     );
 
+    let r = await call('gemini-2.5-flash');
+    if (!r.ok && r.status !== 401 && r.status !== 403) r = await call('gemini-3.5-flash-lite');
+
     if (!r.ok) {
-      const errText = await r.text();
-      return res.status(r.status).json({ error: `Gemini error: ${errText}` });
+      const errText = await r.text().catch(() => '');
+      console.error('[parse-resume] gemini', r.status, errText.slice(0, 300));
+      return res.status(502).json({ error: 'Could not read that resume right now — please try again in a moment.' });
     }
 
     const data = await r.json();
