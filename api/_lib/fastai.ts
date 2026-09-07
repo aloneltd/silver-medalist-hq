@@ -113,7 +113,15 @@ async function groqFetch(model: string, o: AiOptions, stream: boolean, signal: A
 
 /* ---------------------------------------------------------------- gemini */
 
-function geminiBody(o: AiOptions) {
+/**
+ * Gemini 2.x takes thinkingBudget; Gemini 3.x rejects it with 400 INVALID_ARGUMENT and
+ * wants thinkingLevel instead. Sending the wrong one makes the whole fallback rung dead.
+ */
+function thinkingConfigFor(model: string) {
+  return /^gemini-[3-9]/.test(model) ? { thinkingLevel: 'low' } : { thinkingBudget: 0 }
+}
+
+function geminiBody(model: string, o: AiOptions) {
   const contents = o.messages
     .filter(m => m.text && m.role !== 'system')
     .map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }))
@@ -122,10 +130,10 @@ function geminiBody(o: AiOptions) {
     generationConfig: {
       temperature: o.temperature ?? 0.7,
       maxOutputTokens: o.maxTokens ?? 1024,
-      // Thinking off keeps latency down and stops reasoning eating the token budget —
+      // Thinking down keeps latency low and stops reasoning eating the token budget —
       // but gemini-2.5-flash REJECTS a zero budget when Search grounding is on, because
       // it needs that budget to plan its queries. Omit it in that one case.
-      ...(o.useSearch ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+      ...(o.useSearch ? {} : { thinkingConfig: thinkingConfigFor(model) }),
       ...(o.json ? { responseMimeType: 'application/json' } : {}),
     },
   }
@@ -137,7 +145,7 @@ function geminiBody(o: AiOptions) {
 async function geminiFetch(model: string, o: AiOptions, signal: AbortSignal) {
   return fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody(o)), signal },
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody(model, o)), signal },
   )
 }
 
