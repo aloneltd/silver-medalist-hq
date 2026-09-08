@@ -7,6 +7,7 @@ import { snoozeCandidate } from '../bench/lib/actions';
 import { TodayQueueCard } from './TodayQueueCard';
 import { PasteJdInline } from './PasteJdInline';
 import { RoiStrip } from './RoiStrip';
+import { DailyBrief } from './DailyBrief';
 import { ShortlistPanel } from '../bench/ShortlistPanel';
 import { Button } from '../../ui';
 import type { TodayQueueItem } from '../../types';
@@ -70,7 +71,9 @@ export function TodayView() {
           <PasteJdInline />
         </div>
       ) : (
-        <div className="smhq-today-grid">
+        <>
+          <DailyBrief />
+          <div className="smhq-today-grid">
           <section aria-label="Today's queue" className="smhq-today-queue">
             {queue.length === 0 ? (
               <div className="smhq-empty">
@@ -96,7 +99,8 @@ export function TodayView() {
               <ShortlistPanel roleId={selectedRole.id} limit={8} />
             </aside>
           )}
-        </div>
+          </div>
+        </>
       )}
 
       <RoiStrip />

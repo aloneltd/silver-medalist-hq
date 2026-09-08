@@ -43,11 +43,16 @@ export function CommandPaletteNL({ query, roleId, onOpenCandidate, onCompose, on
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setExcludedIds(new Set());
-    setUntilOverride(null);
-    setStatusOverride(null);
+    // Deferred to a microtask so the effect body itself never calls setState synchronously
+    // (react-hooks/set-state-in-effect) — these still land before the debounce fires.
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+      setExcludedIds(new Set());
+      setUntilOverride(null);
+      setStatusOverride(null);
+    });
     const debounce = setTimeout(() => {
       void nlCommand.preview(query).then(p => {
         if (cancelled) return;
