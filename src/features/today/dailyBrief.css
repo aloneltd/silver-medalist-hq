@@ -27,7 +27,16 @@
   gap: 6px;
 }
 
-.smhq-brief-row {
+.smhq-brief-fact {
+  padding-top: 6px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.smhq-brief-list > .smhq-brief-fact:first-child { border-top: none; padding-top: 0; }
+
+.smhq-brief-fact-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -35,24 +44,18 @@
   flex-wrap: wrap;
 }
 
-.smhq-brief-text {
-  font-size: 13px;
-  color: var(--ink);
-  line-height: 1.5;
-  background: none;
-  border: 0;
-  padding: 0;
-  text-align: left;
-  font: inherit;
+.smhq-brief-fact-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
-.smhq-brief-text-link {
-  cursor: pointer;
-  color: var(--ink);
-}
-.smhq-brief-text-link:hover,
-.smhq-brief-text-link:focus-visible {
-  color: var(--accent);
-  text-decoration: underline;
+
+.smhq-brief-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .smhq-brief-actions {
