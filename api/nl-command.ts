@@ -153,7 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
     const parsed = parseJson<unknown>(result.text)
     const plan = validatePlan(parsed, text)
-    if (!plan) throw new AiError(502, 'Could not understand that command.')
+    if (!plan) throw new AiError(502, 'Could not understand that command.', `unparseable model output: ${result.text.slice(0, 300)}`)
     return res.status(200).json({ plan } satisfies { plan: NLPlan })
   } catch (err) {
     // Falls back to a plain-search plan (DESIGN-v2.1.md §C.2: "Falls back to plain search")
