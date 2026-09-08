@@ -1,0 +1,118 @@
+/**
+ * Silver Medalist HQ v2 — design tokens.
+ * Source of truth for every color, radius, shadow, spacing and motion value in the app.
+ * BLUEPRINT-v2.md / DESIGN-v2.md: Graphite (default, dark) ground, one accent (electric teal),
+ * a display serif for headlines to keep the "HQ" gravitas. Paper (light) theme via
+ * `[data-theme="paper"]`. Every value is a CSS custom property so primitives and features
+ * never hardcode a color.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap');
+
+:root {
+  /* ---- type ---- */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-mono: 'SF Mono', ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+
+  /* ---- Graphite (default / dark) ---- */
+  --ground: #0e1013;
+  --ground-raised: #131519;
+  --panel: #1a1d22;
+  --panel-hover: #20232a;
+  --panel-border: #2a2e36;
+  --ink: #c9ced6;
+  --ink-strong: #f2f4f7;
+  --ink-muted: #8b909b;
+  --ink-faint: #5b606b;
+
+  --accent: #35e0c8;
+  --accent-strong: #5cf0da;
+  --accent-ink: #06201b;
+  --amber: #f5b53f;
+  --amber-ink: #241a03;
+  --green: #4ade80;
+  --green-ink: #06280f;
+  --danger: #f5556b;
+  --danger-ink: #2a060a;
+  --info: #6ea8fe;
+
+  --focus-ring: #35e0c8;
+  --selection-bg: rgba(53, 224, 200, 0.24);
+
+  /* ---- radii ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* ---- shadows (dark ground → soft, low-opacity black) ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --shadow-focus: 0 0 0 3px rgba(53, 224, 200, 0.35);
+
+  /* ---- spacing scale ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ---- motion ---- */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-flip: 300ms;
+
+  color-scheme: dark;
+}
+
+/* ---- Paper (light) theme ---- */
+:root[data-theme='paper'] {
+  --ground: #f6f4ef;
+  --ground-raised: #efece4;
+  --panel: #ffffff;
+  --panel-hover: #f4f2ec;
+  --panel-border: #e3ded2;
+  --ink: #2b2a26;
+  --ink-strong: #16150f;
+  --ink-muted: #6b6759;
+  --ink-faint: #a39d8b;
+
+  --accent: #0f9d86;
+  --accent-strong: #0c7d6b;
+  --accent-ink: #eafaf6;
+  --amber: #b8790c;
+  --amber-ink: #fdf3e1;
+  --green: #1f9d55;
+  --green-ink: #eafaf0;
+  --danger: #c92a3f;
+  --danger-ink: #fdeaec;
+  --info: #2563eb;
+
+  --focus-ring: #0f9d86;
+  --selection-bg: rgba(15, 157, 134, 0.18);
+
+  --shadow-sm: 0 1px 2px rgba(20, 18, 10, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 18, 10, 0.08);
+  --shadow-lg: 0 12px 40px rgba(20, 18, 10, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(15, 157, 134, 0.28);
+
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+    --duration-flip: 0ms;
+  }
+}
