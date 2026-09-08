@@ -10,6 +10,7 @@ import { RoiStrip } from './RoiStrip';
 import { DailyBrief } from './DailyBrief';
 import { ShortlistPanel } from '../bench/ShortlistPanel';
 import { Button } from '../../ui';
+import { useCountUpOnce } from '../../app/stagedMotion';
 import type { TodayQueueItem } from '../../types';
 
 /**
@@ -31,6 +32,10 @@ export function TodayView() {
   const queue = dataService.hooks.useTodayQueue(5, selectedRoleId ?? undefined) ?? [];
 
   const activeCount = candidates.filter(c => c.status === 'active').length;
+  // DESIGN-v2.1.md §C.4: "the proof line counts up once" — 0 -> N the very first time this
+  // session, a plain static number on every render after that.
+  const shownActiveCount = useCountUpOnce(activeCount, 'today-proof-active');
+  const shownQueueCount = useCountUpOnce(queue.length, 'today-proof-queue');
 
   const primaryAction = (item: TodayQueueItem) => {
     if (item.action.kind === 'reach_out' || item.action.kind === 'follow_up') {
@@ -54,8 +59,8 @@ export function TodayView() {
             <p className="smhq-proof-line">You don't have a bench yet.</p>
           ) : (
             <p className="smhq-proof-line">
-              <strong>{activeCount}</strong> {activeCount === 1 ? 'person' : 'people'} you already
-              interviewed and liked · <strong>{queue.length}</strong> worth a message today.
+              <strong>{shownActiveCount}</strong> {activeCount === 1 ? 'person' : 'people'} you already
+              interviewed and liked · <strong>{shownQueueCount}</strong> worth a message today.
             </p>
           )}
         </div>

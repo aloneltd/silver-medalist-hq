@@ -1,0 +1,85 @@
+/**
+ * The staged first-load entrance — DESIGN-v2.1.md §C.4. AppShell toggles `.smhq-staged-in` on
+ * <html> for ~900ms on the very first paint of the session (see stagedMotion.ts); this file is
+ * the only place that reacts to it. Opacity-only, deliberately — several of these rows/cards
+ * (Board's dnd-kit cards, the virtualized Bench rows) already own `transform` for drag/position
+ * and must never have it fought over by an entrance animation.
+ */
+
+:root.smhq-staged-in .smhq-today-list > li,
+:root.smhq-staged-in .smhq-brief-row,
+:root.smhq-staged-in .smhq-lookalikes-row,
+:root.smhq-staged-in .smhq-shortlist-card,
+:root.smhq-staged-in .smhq-board-card,
+:root.smhq-staged-in [role='row'] {
+  opacity: 0;
+  animation: smhq-stage-fade 400ms ease forwards;
+}
+
+@keyframes smhq-stage-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* A hand-authored stagger (CSS has no native "index * n ms") — 14 steps is plenty for what's
+   visible above the fold on first paint; anything past it just animates with the last row. */
+:root.smhq-staged-in .smhq-today-list > li:nth-child(1),
+:root.smhq-staged-in .smhq-brief-row:nth-child(1),
+:root.smhq-staged-in .smhq-lookalikes-row:nth-child(1),
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(1),
+:root.smhq-staged-in .smhq-board-card:nth-child(1),
+:root.smhq-staged-in [role='row']:nth-child(1) { animation-delay: 0ms; }
+:root.smhq-staged-in .smhq-today-list > li:nth-child(2),
+:root.smhq-staged-in .smhq-brief-row:nth-child(2),
+:root.smhq-staged-in .smhq-lookalikes-row:nth-child(2),
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(2),
+:root.smhq-staged-in .smhq-board-card:nth-child(2),
+:root.smhq-staged-in [role='row']:nth-child(2) { animation-delay: 32ms; }
+:root.smhq-staged-in .smhq-today-list > li:nth-child(3),
+:root.smhq-staged-in .smhq-brief-row:nth-child(3),
+:root.smhq-staged-in .smhq-lookalikes-row:nth-child(3),
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(3),
+:root.smhq-staged-in .smhq-board-card:nth-child(3),
+:root.smhq-staged-in [role='row']:nth-child(3) { animation-delay: 64ms; }
+:root.smhq-staged-in .smhq-today-list > li:nth-child(4),
+:root.smhq-staged-in .smhq-brief-row:nth-child(4),
+:root.smhq-staged-in .smhq-lookalikes-row:nth-child(4),
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(4),
+:root.smhq-staged-in .smhq-board-card:nth-child(4),
+:root.smhq-staged-in [role='row']:nth-child(4) { animation-delay: 96ms; }
+:root.smhq-staged-in .smhq-today-list > li:nth-child(5),
+:root.smhq-staged-in .smhq-brief-row:nth-child(5),
+:root.smhq-staged-in .smhq-lookalikes-row:nth-child(5),
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(5),
+:root.smhq-staged-in .smhq-board-card:nth-child(5),
+:root.smhq-staged-in [role='row']:nth-child(5) { animation-delay: 128ms; }
+:root.smhq-staged-in .smhq-today-list > li:nth-child(6),
+:root.smhq-staged-in .smhq-brief-row:nth-child(6),
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(6),
+:root.smhq-staged-in .smhq-board-card:nth-child(6),
+:root.smhq-staged-in [role='row']:nth-child(6) { animation-delay: 160ms; }
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(7),
+:root.smhq-staged-in .smhq-board-card:nth-child(7),
+:root.smhq-staged-in [role='row']:nth-child(7) { animation-delay: 192ms; }
+:root.smhq-staged-in .smhq-shortlist-card:nth-child(8),
+:root.smhq-staged-in .smhq-board-card:nth-child(8),
+:root.smhq-staged-in [role='row']:nth-child(8) { animation-delay: 224ms; }
+:root.smhq-staged-in .smhq-board-card:nth-child(9),
+:root.smhq-staged-in [role='row']:nth-child(9) { animation-delay: 256ms; }
+:root.smhq-staged-in .smhq-board-card:nth-child(10),
+:root.smhq-staged-in [role='row']:nth-child(10) { animation-delay: 288ms; }
+:root.smhq-staged-in [role='row']:nth-child(11) { animation-delay: 320ms; }
+:root.smhq-staged-in [role='row']:nth-child(12) { animation-delay: 352ms; }
+:root.smhq-staged-in [role='row']:nth-child(n+13) { animation-delay: 384ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root.smhq-staged-in .smhq-today-list > li,
+  :root.smhq-staged-in .smhq-brief-row,
+  :root.smhq-staged-in .smhq-lookalikes-row,
+  :root.smhq-staged-in .smhq-shortlist-card,
+  :root.smhq-staged-in .smhq-board-card,
+  :root.smhq-staged-in [role='row'] {
+    animation: none;
+    opacity: 1;
+  }
+}

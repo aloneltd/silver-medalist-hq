@@ -11,6 +11,8 @@ import { CommandPalette } from './CommandPalette';
 import { PasteRoleFlow } from './PasteRoleFlow';
 import { SampleBenchBanner } from './SampleBenchBanner';
 import { Kbd } from '../ui';
+import { useStagedFirstLoad } from './stagedMotion';
+import './stagedMotion.css';
 
 // Lazy: both are conditionally-rendered overlays (only mount once a candidate/composer request
 // exists), and OutreachComposer in particular pulls in the AI streaming call — keeping these out
@@ -37,6 +39,11 @@ export function AppShell() {
   } = useAppUI();
   const { user, mode, googleConfigured, signIn, signOut, error: authError, clearError } = useAuth();
   const { candidateId, closeCandidate } = useDossierLink();
+
+  // DESIGN-v2.1.md §C.4: rows/cards stagger in over ~400ms, once per session, honouring
+  // reduced motion. Toggles a class on <html> that stagedMotion.css reacts to — see that file
+  // for why this is opacity-only (Board/Bench already own `transform` for drag/virtualization).
+  useStagedFirstLoad('shell', 'smhq-staged-in');
 
   return (
     <div className={`smhq-shell ${railCollapsed ? 'smhq-shell-rail-collapsed' : ''}`}>
