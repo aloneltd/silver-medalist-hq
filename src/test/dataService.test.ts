@@ -185,3 +185,44 @@ describe('dataService.applyScoreResults', () => {
     expect(second[0].score).toBe(55); // the new AI score still updates
   });
 });
+
+describe('dataService import dedupe', () => {
+  it('merges a within-file duplicate into the existing bench record', async () => {
+    const existing = makeCandidate({ name: 'Priya Shah', currentEmployer: 'Acme' });
+    await db.candidates.put(existing);
+
+    const rowA = makeCandidate({ name: 'Priya Shah', currentEmployer: 'Acme' });
+    const preview = await dataService.previewCandidateImport([rowA]);
+    expect(preview[0].action).toBe('merge');
+    expect(preview[0].existing?.id).toBe(existing.id);
+  });
+
+  it('merges the SECOND of two identical rows in the same file into the first, instead of creating two duplicates', async () => {
+    const rowA = makeCandidate({ name: 'Priya Shah', currentEmployer: 'Acme', email: undefined });
+    const rowB = makeCandidate({ name: 'Priya Shah', currentEmployer: 'Acme', email: undefined });
+    const preview = await dataService.previewCandidateImport([rowA, rowB]);
+
+    expect(preview[0].action).toBe('create');
+    expect(preview[1].action).toBe('merge');
+    expect(preview[1].existing?.id).toBe(rowA.id);
+
+    const { created, merged } = await dataService.commitCandidateImport(preview);
+    expect(created).toBe(1);
+    expect(merged).toBe(1);
+    const all = await db.candidates.where('name').equals('Priya Shah').toArray();
+    expect(all).toHaveLength(1); // not 2 — the whole point of the fix
+    expect(all[0].id).toBe(rowA.id);
+  });
+
+  it('does not cross-merge two genuinely different people in the same file', async () => {
+    const rowA = makeCandidate({ name: 'Priya Shah', currentEmployer: 'Acme' });
+    const rowB = makeCandidate({ name: 'Kofi Mensah', currentEmployer: 'Acme' });
+    const preview = await dataService.previewCandidateImport([rowA, rowB]);
+    expect(preview[0].action).toBe('create');
+    expect(preview[1].action).toBe('create');
+
+    const { created, merged } = await dataService.commitCandidateImport(preview);
+    expect(created).toBe(2);
+    expect(merged).toBe(0);
+  });
+});

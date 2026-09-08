@@ -456,7 +456,14 @@ function candidateDedupeKeys(c: Pick<Candidate, 'email' | 'name' | 'currentEmplo
   return keys;
 }
 
-/** Dedupes on email, or name+employer as a fallback — BLUEPRINT-v2.md's import contract. */
+/**
+ * Dedupes on email, or name+employer as a fallback — BLUEPRINT-v2.md's import contract.
+ * `byKey` starts seeded from the existing bench, but is also updated as each incoming row is
+ * resolved — otherwise two identical rows *within the same file* (a real CSV export gotcha)
+ * would both read as "no existing match" and both become 'create', silently writing two
+ * duplicate candidates. The second (and any later) occurrence of a within-file duplicate now
+ * merges into whichever record the first occurrence resolves to.
+ */
 async function previewCandidateImport(incoming: Candidate[]): Promise<ImportPreviewItem[]> {
   const existingList = await list('candidates');
   const byKey = new Map<string, Candidate>();
@@ -464,6 +471,11 @@ async function previewCandidateImport(incoming: Candidate[]): Promise<ImportPrev
 
   return incoming.map(cand => {
     const existing = candidateDedupeKeys(cand).map(k => byKey.get(k)).find((x): x is Candidate => !!x);
+    // Register this row's resolved identity (the existing match, or the incoming row itself
+    // standing in for the not-yet-created record) so a later duplicate row in the same file
+    // finds it too.
+    const resolved = existing ?? cand;
+    for (const k of candidateDedupeKeys(cand)) byKey.set(k, resolved);
     return { incoming: cand, existing, action: existing ? 'merge' : 'create' };
   });
 }
