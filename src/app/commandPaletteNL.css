@@ -1,0 +1,75 @@
+/**
+ * Styles for the NL ⌘K preview (CommandPaletteNL.tsx). Imported directly from that component
+ * (Vite bundles CSS from any module import) so it doesn't require touching src/app/app.css.
+ */
+
+.smhq-palette-nl {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.smhq-palette-nl-skeleton {
+  height: 14px;
+  width: 90%;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--panel-hover) 25%, var(--panel) 37%, var(--panel-hover) 63%);
+  background-size: 400% 100%;
+  animation: smhq-nl-shimmer 1.4s ease infinite;
+}
+@keyframes smhq-nl-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+.smhq-palette-nl-error { color: var(--danger); font-size: 13px; }
+
+.smhq-palette-nl-sentence {
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.smhq-palette-nl-date,
+.smhq-palette-nl-select {
+  font: inherit;
+  font-size: 13px;
+  background: var(--panel-hover);
+  color: var(--ink-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+.smhq-palette-nl-toggle {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.smhq-palette-nl-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.smhq-palette-nl-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smhq-palette-nl-skeleton { animation: none; }
+}

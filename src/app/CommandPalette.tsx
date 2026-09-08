@@ -6,6 +6,8 @@ import { m, AnimatePresence, LazyMotion, domAnimation } from 'framer-motion';
 import { db } from '../db';
 import { useAppUI } from './store';
 import { useDossierLink } from './useDossierLink';
+import { looksLikeNaturalLanguage } from './nlDetect';
+import { CommandPaletteNL } from './CommandPaletteNL';
 
 interface Command {
   id: string;
@@ -17,12 +19,17 @@ interface Command {
 /** ⌘K / Ctrl+K palette — jump to a person or role, or run a shell-level action. Mounted once
  * in <AppShell>; open state lives in useAppUI() so any feature can trigger it too. */
 export function CommandPalette() {
-  const { paletteOpen, setPaletteOpen, toggleTheme, openPasteRole, setSelectedRoleId } = useAppUI();
+  const { paletteOpen, setPaletteOpen, toggleTheme, openPasteRole, setSelectedRoleId, selectedRoleId, openComposer } = useAppUI();
   const { openCandidate } = useDossierLink();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // NL mode — DESIGN-v2.1.md §C.2: a verb or > 3 words switches ⌘K from "jump to" into a
+  // natural-language command preview. Plain search/jump keeps its existing Enter-runs-it UX;
+  // NL mode requires a separate Apply (⌘⏎), so the two must never share the Enter handler.
+  const nlMode = looksLikeNaturalLanguage(query);
 
   const candidates = useLiveQuery(() => db.candidates.toArray(), [], []) ?? [];
   const roles = useLiveQuery(() => db.roles.toArray(), [], []) ?? [];
@@ -114,36 +121,47 @@ export function CommandPalette() {
             <input
               ref={inputRef}
               className="smhq-palette-input"
-              placeholder="Jump to a person, a role, or run an action…"
+              placeholder="Jump to a person, a role, or type a command like 'snooze everyone silent until spring'…"
               value={query}
               onChange={e => { setQuery(e.target.value); setActiveIndex(0); }}
               onKeyDown={e => {
+                if (nlMode) return; // CommandPaletteNL owns its own keys (⌘⏎ to Apply)
                 if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => Math.min(commands.length - 1, i + 1)); }
                 if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => Math.max(0, i - 1)); }
                 if (e.key === 'Enter') { e.preventDefault(); runActive(); }
               }}
-              aria-activedescendant={commands[activeIndex]?.id}
+              aria-activedescendant={nlMode ? undefined : commands[activeIndex]?.id}
               role="combobox"
               aria-expanded
               aria-controls="smhq-palette-list"
             />
-            <ul id="smhq-palette-list" className="smhq-palette-list" role="listbox">
-              {commands.length === 0 && <li className="smhq-palette-empty">No matches.</li>}
-              {commands.map((cmd, i) => (
-                <li
-                  key={cmd.id}
-                  id={cmd.id}
-                  role="option"
-                  aria-selected={i === activeIndex}
-                  className={`smhq-palette-item ${i === activeIndex ? 'smhq-palette-item-active' : ''}`}
-                  onMouseEnter={() => setActiveIndex(i)}
-                  onClick={() => { cmd.run(); setPaletteOpen(false); }}
-                >
-                  <span>{cmd.label}</span>
-                  {cmd.hint && <span className="smhq-palette-hint">{cmd.hint}</span>}
-                </li>
-              ))}
-            </ul>
+            {nlMode ? (
+              <CommandPaletteNL
+                query={query}
+                roleId={selectedRoleId ?? undefined}
+                onOpenCandidate={openCandidate}
+                onCompose={(candidateId, roleId, tone) => openComposer({ candidateId, roleId, tone })}
+                onDone={() => setPaletteOpen(false)}
+              />
+            ) : (
+              <ul id="smhq-palette-list" className="smhq-palette-list" role="listbox">
+                {commands.length === 0 && <li className="smhq-palette-empty">No matches.</li>}
+                {commands.map((cmd, i) => (
+                  <li
+                    key={cmd.id}
+                    id={cmd.id}
+                    role="option"
+                    aria-selected={i === activeIndex}
+                    className={`smhq-palette-item ${i === activeIndex ? 'smhq-palette-item-active' : ''}`}
+                    onMouseEnter={() => setActiveIndex(i)}
+                    onClick={() => { cmd.run(); setPaletteOpen(false); }}
+                  >
+                    <span>{cmd.label}</span>
+                    {cmd.hint && <span className="smhq-palette-hint">{cmd.hint}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
           </m.div>
         </div>
       </AnimatePresence>

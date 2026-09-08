@@ -116,28 +116,28 @@ describe('resolveFilter', () => {
 });
 
 describe('preview', () => {
-  const originalFetch = global.fetch;
-  afterEach(() => { global.fetch = originalFetch; });
+  const originalFetch = globalThis.fetch;
+  afterEach(() => { globalThis.fetch = originalFetch; });
 
   it('flags overReach when more than 10 candidates match', async () => {
     const candidates = Array.from({ length: 12 }, () => makeCandidate({ status: 'active' }));
     await db.candidates.bulkPut(candidates);
 
-    global.fetch = vi.fn(async () => new Response(JSON.stringify({
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({
       plan: { action: 'status', target: { status: ['active'] }, params: { status: 'silent' }, explanation: 'mark everyone silent' },
     }), { status: 200 })) as unknown as typeof fetch;
 
     const result = await preview('mark everyone silent');
     expect(result.matches.length).toBe(12);
     expect(result.overReach).toBe(true);
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
   });
 
   it('falls back to a plain-search plan when the API call fails', async () => {
-    global.fetch = vi.fn(async () => new Response('boom', { status: 500 })) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn(async () => new Response('boom', { status: 500 })) as unknown as typeof fetch;
     const result = await preview('anything at all');
     expect(result.plan.action).toBe('filter');
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
   });
 });
 
