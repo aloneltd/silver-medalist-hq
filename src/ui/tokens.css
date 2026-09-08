@@ -7,7 +7,8 @@
  * never hardcode a color.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap');
+/* Font faces are imported from src/index.css (must be the first rule in a stylesheet, and
+ * tokens.css itself gets @imported partway through index.css) — see the top of that file. */
 
 :root {
   /* ---- type ---- */
@@ -40,17 +41,25 @@
   --focus-ring: #35e0c8;
   --selection-bg: rgba(53, 224, 200, 0.24);
 
+  /* ---- short aliases (src/features/bench/lib/tokens.ts + friends read these names) ---- */
+  --bg: var(--ground);
+  --panel-2: var(--panel-hover);
+  --muted: var(--ink-muted);
+  --border: var(--panel-border);
+
   /* ---- radii ---- */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-full: 999px;
+  --radius: var(--radius-md);
 
   /* ---- shadows (dark ground → soft, low-opacity black) ---- */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
   --shadow-focus: 0 0 0 3px rgba(53, 224, 200, 0.35);
+  --shadow: var(--shadow-md);
 
   /* ---- spacing scale ---- */
   --space-1: 4px;

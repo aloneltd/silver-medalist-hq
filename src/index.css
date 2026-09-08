@@ -1,22 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap');
 @import "tailwindcss";
+@import "./ui/tokens.css";
+@import "./ui/primitives.css";
+@import "./app/app.css";
+@import "./features/features.css";
 
 @layer base {
   * {
     box-sizing: border-box;
   }
+  html {
+    background: var(--ground);
+    color-scheme: light dark;
+  }
   body {
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100svh;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   #root {
     width: 100%;
     min-height: 100svh;
   }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    color: var(--ink-strong);
+    margin: 0;
+  }
+  ::selection {
+    background: var(--selection-bg);
+    color: var(--ink-strong);
+  }
+  a {
+    color: var(--accent);
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* thin, theme-aware scrollbars everywhere else */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -29,3 +63,14 @@
   50% { opacity: 0.5; }
 }
 .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* stale-row amber pulse — plays once per session (see src/features/board), then holds solid */
+@keyframes smhq-amber-pulse-once {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 181, 63, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(245, 181, 63, 0.35); }
+}
+.smhq-stale-pulse-once { animation: smhq-amber-pulse-once 1.1s var(--ease-standard) 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin, .animate-pulse, .smhq-stale-pulse-once { animation: none; }
+}

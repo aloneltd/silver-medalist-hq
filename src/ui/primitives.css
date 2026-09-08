@@ -1,0 +1,232 @@
+/**
+ * Component classes for src/ui/primitives/*. Every value reads a token from tokens.css —
+ * never a raw hex — so Graphite/Paper and future theme edits stay a one-file change.
+ */
+
+/* ============================================================ focus ring (shared) */
+.smhq-focusable:focus-visible,
+.smhq-btn:focus-visible,
+.smhq-chip:focus-visible,
+.smhq-input:focus-visible,
+.smhq-textarea:focus-visible,
+.smhq-icon-btn:focus-visible,
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* ==================================================================== Button */
+.smhq-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+.smhq-btn:active { transform: translateY(1px); }
+.smhq-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.smhq-btn-sm { padding: 6px 10px; font-size: 12.5px; }
+.smhq-btn-md { padding: 9px 14px; font-size: 13.5px; }
+.smhq-btn-lg { padding: 12px 20px; font-size: 15px; }
+
+.smhq-btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.smhq-btn-primary:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
+
+.smhq-btn-secondary {
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--panel-border);
+}
+.smhq-btn-secondary:hover:not(:disabled) { background: var(--panel-hover); color: var(--ink-strong); }
+
+.smhq-btn-ghost {
+  background: transparent;
+  color: var(--ink-muted);
+  border-color: transparent;
+}
+.smhq-btn-ghost:hover:not(:disabled) { background: var(--panel-hover); color: var(--ink-strong); }
+
+.smhq-btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+.smhq-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+.smhq-btn-spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: smhq-spin 0.7s linear infinite;
+}
+@keyframes smhq-spin { to { transform: rotate(360deg); } }
+
+/* ==================================================================== Chip */
+.smhq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+.smhq-chip:hover { background: var(--panel-hover); color: var(--ink); }
+.smhq-chip-selected.smhq-chip-neutral { background: var(--panel-hover); color: var(--ink-strong); border-color: var(--ink-faint); }
+.smhq-chip-accent.smhq-chip-selected, .smhq-chip-accent:hover { color: var(--accent); border-color: var(--accent); }
+.smhq-chip-amber.smhq-chip-selected, .smhq-chip-amber:hover { color: var(--amber); border-color: var(--amber); }
+.smhq-chip-green.smhq-chip-selected, .smhq-chip-green:hover { color: var(--green); border-color: var(--green); }
+.smhq-chip-danger.smhq-chip-selected, .smhq-chip-danger:hover { color: var(--danger); border-color: var(--danger); }
+
+/* ==================================================================== Input / Textarea */
+.smhq-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.smhq-field-label { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.smhq-input-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--ground-raised);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+.smhq-input-wrap:focus-within { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+.smhq-input-wrap-error { border-color: var(--danger); }
+.smhq-input-icon { color: var(--ink-faint); display: flex; }
+.smhq-input {
+  flex: 1; min-width: 0; border: none; background: transparent; color: var(--ink-strong);
+  font-family: var(--font-ui); font-size: 13.5px; padding: 10px 0; outline: none;
+}
+.smhq-input::placeholder { color: var(--ink-faint); }
+.smhq-textarea {
+  width: 100%; resize: vertical; min-height: 96px;
+  background: var(--ground-raised); border: 1px solid var(--panel-border); border-radius: var(--radius-md);
+  color: var(--ink-strong); font-family: var(--font-ui); font-size: 13.5px; padding: 10px 12px; outline: none;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+.smhq-textarea:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+.smhq-field-hint { font-size: 11.5px; color: var(--ink-faint); }
+.smhq-field-error { font-size: 11.5px; color: var(--danger); }
+
+/* ==================================================================== icon button */
+.smhq-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: var(--radius-md);
+  border: 1px solid transparent; background: transparent; color: var(--ink-muted);
+  cursor: pointer; transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+.smhq-icon-btn:hover { background: var(--panel-hover); color: var(--ink-strong); }
+
+/* ==================================================================== Drawer */
+.smhq-drawer-layer, .smhq-dialog-layer { position: fixed; inset: 0; z-index: 80; }
+.smhq-scrim { position: absolute; inset: 0; background: rgba(4, 5, 7, 0.55); backdrop-filter: blur(2px); }
+.smhq-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 100%;
+  background: var(--panel); border-left: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-lg); display: flex; flex-direction: column; outline: none;
+}
+.smhq-drawer-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--panel-border);
+}
+.smhq-drawer-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--ink-strong); margin: 0; }
+.smhq-drawer-subtitle { font-size: 12.5px; color: var(--ink-muted); margin-top: 4px; }
+.smhq-drawer-body { flex: 1; overflow-y: auto; padding: var(--space-5); }
+@media (max-width: 640px) {
+  .smhq-drawer { max-width: 100% !important; }
+}
+
+/* ==================================================================== Dialog */
+.smhq-dialog-layer { display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+.smhq-dialog {
+  position: relative; width: 100%; max-width: 440px;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); outline: none;
+}
+.smhq-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-5) var(--space-5) 0; }
+.smhq-dialog-title { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--ink-strong); margin: 0; }
+.smhq-dialog-body { padding: var(--space-4) var(--space-5); color: var(--ink); font-size: 13.5px; line-height: 1.55; }
+.smhq-dialog-footer { display: flex; justify-content: flex-end; gap: var(--space-2); padding: 0 var(--space-5) var(--space-5); }
+
+/* ==================================================================== Tooltip */
+.smhq-tooltip-wrap { position: relative; display: inline-flex; }
+.smhq-tooltip {
+  position: absolute; left: 50%; transform: translateX(-50%) translateY(4px);
+  background: var(--ink-strong); color: var(--ground);
+  font-size: 11.5px; font-weight: 600; padding: 5px 9px; border-radius: var(--radius-sm);
+  white-space: nowrap; pointer-events: none; opacity: 0; z-index: 60;
+  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+.smhq-tooltip-top { bottom: calc(100% + 6px); }
+.smhq-tooltip-bottom { top: calc(100% + 6px); }
+.smhq-tooltip-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ==================================================================== Toast */
+.smhq-toast-region {
+  position: fixed; left: 50%; bottom: var(--space-6); transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px; z-index: 100; align-items: center;
+}
+.smhq-toast {
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--ink-strong); color: var(--ground);
+  padding: 10px 14px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  font-size: 13px; font-weight: 500;
+}
+.smhq-toast-success { background: var(--green); color: var(--green-ink); }
+.smhq-toast-danger { background: var(--danger); color: var(--danger-ink); }
+.smhq-toast-action { background: transparent; border: none; font-weight: 700; text-decoration: underline; cursor: pointer; color: inherit; }
+
+/* ==================================================================== Skeleton */
+.smhq-skeleton {
+  display: inline-block;
+  background: linear-gradient(90deg, var(--panel-hover) 25%, var(--panel-border) 37%, var(--panel-hover) 63%);
+  background-size: 400% 100%;
+  animation: smhq-shimmer 1.4s ease infinite;
+}
+@keyframes smhq-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .smhq-skeleton { animation: none; opacity: 0.6; } }
+
+/* ==================================================================== Kbd */
+.smhq-kbd-group { display: inline-flex; gap: 3px; }
+.smhq-kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  background: var(--ground-raised); border: 1px solid var(--panel-border); border-bottom-width: 2px;
+  border-radius: 4px; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-muted);
+}
+
+/* ==================================================================== Table */
+.smhq-table-scroll { width: 100%; overflow-x: auto; }
+.smhq-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.smhq-thead th {
+  position: sticky; top: 0; background: var(--panel); z-index: 1;
+  text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-faint); padding: 8px 12px; border-bottom: 1px solid var(--panel-border);
+}
+.smhq-tr { border-bottom: 1px solid var(--panel-border); transition: background-color var(--duration-fast) var(--ease-standard); }
+.smhq-tr:hover { background: var(--panel-hover); }
+.smhq-tr-selected { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.smhq-td { padding: 10px 12px; color: var(--ink); vertical-align: middle; }
