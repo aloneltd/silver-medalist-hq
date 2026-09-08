@@ -1,0 +1,7 @@
+# Vercel's file-based routing turns every non-underscore-prefixed file directly under api/
+# into a live serverless function. Test files have no request handler, so without this they
+# deploy as public routes that 500 on every call (api/brief.test, api/nl-command.test,
+# api/score.test all did before this file existed). Keep them in git and out of the deploy —
+# `npm run build`'s `tsc -b` doesn't type-check api/** anyway (see tsconfig.app.json), so this
+# is purely a deploy-time exclusion, not a build-time one.
+api/**/*.test.ts
