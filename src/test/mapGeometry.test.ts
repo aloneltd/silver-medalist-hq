@@ -67,7 +67,10 @@ describe('buildPoints', () => {
 describe('colorForStatus', () => {
   it('maps every candidate status to a color', () => {
     expect(colorForStatus('active')).toMatch(/accent/);
-    expect(colorForStatus('took_role')).toMatch(/amber/);
-    expect(colorForStatus('do_not_reapproach')).toMatch(/danger/);
+    // Polish pass palette: took-a-role is blue (informational), do-not-re-approach is amber
+    // (a caution you can still see past), opted-out is the only red.
+    expect(colorForStatus('took_role')).toMatch(/info/);
+    expect(colorForStatus('do_not_reapproach')).toMatch(/amber/);
+    expect(colorForStatus('opted_out')).toMatch(/danger/);
   });
 });

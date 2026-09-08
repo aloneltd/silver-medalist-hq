@@ -29,12 +29,13 @@ const seniorityRadius = scaleOrdinal<Seniority, number>()
   .domain(['junior', 'mid', 'senior', 'staff', 'principal', 'exec'])
   .range([4, 6, 8, 10, 12, 14]);
 
+/** Same hue per status as the bench chips — teal / grey / blue / amber / red. */
 const STATUS_COLOR: Record<Candidate['status'], string> = {
-  active: 'var(--accent,#35e0c8)',
-  silent: 'var(--muted,#8b95a1)',
-  took_role: 'var(--amber,#f5b53f)',
-  do_not_reapproach: 'var(--danger,#f0555d)',
-  opted_out: 'var(--danger,#f0555d)',
+  active: 'var(--accent)',
+  silent: 'var(--ink-muted)',
+  took_role: 'var(--info)',
+  do_not_reapproach: 'var(--amber)',
+  opted_out: 'var(--danger)',
 };
 
 export function colorForStatus(status: Candidate['status']): string {

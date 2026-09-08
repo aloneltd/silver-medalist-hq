@@ -1,16 +1,8 @@
 import { memo, type CSSProperties } from 'react';
 import { m } from 'framer-motion';
 import type { Candidate, Match } from '../../types';
-import { cx, STATUS_META, token } from './lib/tokens';
-import { daysSince, formatWarmthDays, tenureMonths } from './lib/warmth';
-import { useCountUp } from './lib/motion';
-
-const SUB_LABELS: Array<{ key: keyof Match['sub']; label: string }> = [
-  { key: 'skills', label: 'Skills' },
-  { key: 'seniority', label: 'Seniority' },
-  { key: 'comp', label: 'Comp' },
-  { key: 'timing', label: 'Timing' },
-];
+import { Avatar, FitRing, StatusChip, WarmthBar, SUB_KEYS } from '../../ui';
+import { daysSince, tenureMonths } from './lib/warmth';
 
 function tenureLabel(tenureStart: string): string {
   const months = tenureMonths(tenureStart);
@@ -28,6 +20,8 @@ export interface BenchRowProps {
   syncing: boolean;
   flipActive: boolean;
   style: CSSProperties;
+  /** Longest gap on the visible bench — scales the warmth bars against each other. */
+  maxWarmthDays?: number;
   onToggleSelect: (id: string, additive: boolean) => void;
   onOpen: (id: string) => void;
   onCompose: (id: string) => void;
@@ -35,13 +29,19 @@ export interface BenchRowProps {
   measureRef?: (el: HTMLElement | null) => void;
 }
 
+/**
+ * One bench row. Five signals, each in its own channel so a recruiter can scan a column
+ * rather than read a paragraph: who (avatar + name), where they stand (status chip), how
+ * cold they've gone (number + warmth bar), how well they fit (the ring, with its four
+ * sub-scores on hover), and — the one that earns the row — why now, in the ink colour.
+ */
 function BenchRowInner({
-  candidate, match, isSelected, isActive, syncing, flipActive, style,
+  candidate, match, isSelected, isActive, syncing, flipActive, style, maxWarmthDays = 400,
   onToggleSelect, onOpen, onCompose, onSnooze, measureRef,
 }: BenchRowProps) {
-  const meta = STATUS_META[candidate.status] ?? STATUS_META.active;
-  const displayScore = useCountUp(match?.override?.score ?? match?.score ?? 0);
-  const showSkeleton = syncing && candidate.status === 'active' && !match;
+  const greyed = candidate.status !== 'active';
+  const score = match?.override?.score ?? match?.score;
+  const showSkeleton = syncing && !match;
   const warmthDays = daysSince(candidate.warmthAt);
   const stale = candidate.status === 'active' && warmthDays > 14;
   const whyNow = match?.override?.reason
@@ -58,15 +58,9 @@ function BenchRowInner({
       transition={flipActive ? { duration: 0.3, ease: [0.2, 0.8, 0.2, 1] } : { duration: 0 }}
       style={style}
       className={[
-        'group absolute left-0 right-0 grid items-center gap-2 px-3 sm:gap-3',
-        // Mobile (< sm): checkbox, name (why-now folds in as a second line), fit, actions.
-        // Desktop (>= sm): the full dense set of columns, per BLUEPRINT-v2.md's bench spec.
-        'grid-cols-[20px_minmax(0,1fr)_56px_auto]',
-        'sm:grid-cols-[24px_minmax(0,1.6fr)_140px_64px_84px_minmax(0,2fr)_auto]',
-        'border-b',
-        cx.border,
-        isActive ? `bg-[${token.panel2}]` : 'bg-transparent hover:bg-[var(--panel-2,#1c2127)]',
-        meta.greyed ? 'opacity-70' : '',
+        'smhq-bench-row smhq-bench-grid',
+        isActive ? 'smhq-bench-row-active' : '',
+        greyed ? 'smhq-bench-row-greyed' : '',
       ].join(' ')}
     >
       <input
@@ -74,100 +68,93 @@ function BenchRowInner({
         checked={isSelected}
         onChange={e => onToggleSelect(candidate.id, (e.nativeEvent as MouseEvent).shiftKey)}
         aria-label={`Select ${candidate.name}`}
-        className={`h-4 w-4 ${cx.focusRing} accent-[var(--accent,#35e0c8)]`}
+        className="smhq-focus-ring"
+        style={{ width: 15, height: 15, accentColor: 'var(--accent)' }}
       />
 
-      <button
-        type="button"
-        onClick={() => onOpen(candidate.id)}
-        className={`min-w-0 py-2 text-left ${cx.focusRing} rounded-[4px]`}
-      >
-        <div className={`truncate font-medium ${cx.ink}`}>{candidate.name}</div>
-        <div className={`truncate text-xs ${cx.muted} sm:hidden`}>
-          {showSkeleton ? 'Scoring…' : whyNow ?? `${candidate.currentTitle} · ${formatWarmthDays(warmthDays)}`}
-        </div>
-        <div className={`hidden truncate text-xs ${cx.muted} sm:block`}>
-          {candidate.currentTitle} · {candidate.currentEmployer} · {tenureLabel(candidate.tenureStart)}
-        </div>
+      <button type="button" onClick={() => onOpen(candidate.id)} className="smhq-bench-identity smhq-focus-ring">
+        <Avatar name={candidate.name} size={30} />
+        <span className="smhq-bench-identity-text">
+          <span className="smhq-bench-name smhq-truncate" style={{ fontSize: 13.5 }}>
+            {candidate.name}
+          </span>
+          <span className="smhq-bench-sub smhq-truncate smhq-bench-only-wide" style={{ fontSize: 11.5 }}>
+            {candidate.currentTitle} · {candidate.currentEmployer} · {tenureLabel(candidate.tenureStart)}
+          </span>
+          <span className="smhq-bench-sub smhq-truncate smhq-bench-only-narrow" style={{ fontSize: 11.5 }}>
+            {showSkeleton ? 'Scoring…' : whyNow ?? `${candidate.currentTitle} · ${warmthDays}d`}
+          </span>
+        </span>
       </button>
 
-      <div className="hidden min-w-0 sm:block">
-        <span
-          title={candidate.statusReason || meta.label}
-          className={`inline-flex max-w-full items-center gap-1.5 truncate rounded-full border px-2 py-0.5 text-xs ${cx.border} ${meta.textClass}`}
-        >
-          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dotClass}`} />
-          <span className="truncate">{meta.label}{candidate.statusReason ? ` · ${candidate.statusReason}` : ''}</span>
-        </span>
+      <div className="smhq-bench-only-wide" style={{ minWidth: 0 }}>
+        <StatusChip
+          status={candidate.status}
+          snoozeUntil={candidate.snoozeUntil}
+          reason={candidate.statusReason}
+          compact
+        />
       </div>
 
-      <div className={`hidden text-right tabular-nums text-sm sm:block ${stale ? cx.amberText : cx.muted}`}>
-        {formatWarmthDays(warmthDays)}
+      <div className="smhq-bench-only-wide" style={{ justifySelf: 'end' }}>
+        <WarmthBar days={warmthDays} max={maxWarmthDays} stale={stale} />
       </div>
 
-      <div className="relative text-right">
+      <div className="group" style={{ position: 'relative', justifySelf: 'end' }}>
         {showSkeleton ? (
-          <div className="ml-auto h-4 w-10 animate-pulse rounded bg-[var(--panel-2,#1c2127)]" />
-        ) : match ? (
-          <span className={`font-mono text-sm font-semibold ${cx.accentText}`}>{displayScore}</span>
+          <span className="smhq-skeleton" style={{ width: 34, height: 34, borderRadius: '50%', display: 'block' }} />
         ) : (
-          <span className={`text-sm ${cx.muted}`}>—</span>
+          <FitRing
+            value={score ?? null}
+            size={34}
+            label={score === undefined
+              ? `${candidate.name}: not scored for this role`
+              : `${candidate.name}: fit ${Math.round(score)} of 100`}
+          />
         )}
 
         {match && !showSkeleton && (
-          <div
-            className={[
-              'pointer-events-none absolute right-0 top-full z-10 mt-1 w-52 rounded-[8px] border p-2 opacity-0',
-              'transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100',
-              'group-focus-within:pointer-events-auto group-focus-within:opacity-100',
-              cx.surface, cx.shadow,
-            ].join(' ')}
-          >
-            {SUB_LABELS.map(({ key, label }) => (
-              <div key={key} className="mb-1 flex items-center gap-2 text-xs last:mb-0">
-                <span className={`w-16 shrink-0 ${cx.muted}`}>{label}</span>
-                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--panel-2,#1c2127)]">
-                  <span
-                    className={`block h-full ${cx.accentBg}`}
-                    style={{ width: `${Math.max(0, Math.min(100, match.sub[key]))}%` }}
-                  />
+          <div className="smhq-subscore-pop">
+            {SUB_KEYS.map(({ key, label }) => (
+              <div key={key} className="smhq-subscore-row">
+                <span>{label}</span>
+                <span className="smhq-subscore-track">
+                  <i style={{ width: `${Math.max(0, Math.min(100, match.sub[key]))}%` }} />
                 </span>
-                <span className="w-7 shrink-0 text-right tabular-nums">{Math.round(match.sub[key])}</span>
+                <span className="smhq-subscore-val">{Math.round(match.sub[key])}</span>
               </div>
             ))}
             {match.flags.length > 0 && (
-              <div className={`mt-1 border-t pt-1 text-[11px] ${cx.border} ${cx.amberText}`}>
-                {match.flags.join(' · ')}
-              </div>
+              <div className="smhq-subscore-flags">{match.flags.join(' · ')}</div>
+            )}
+            {match.fallback && (
+              <div className="smhq-subscore-flags">Keyword fit — not AI-scored</div>
             )}
           </div>
         )}
       </div>
 
-      <div className="hidden min-w-0 truncate text-sm italic sm:block" title={whyNow}>
+      <div className="smhq-bench-only-wide" style={{ minWidth: 0 }}>
         {showSkeleton ? (
-          <div className="h-3.5 w-full max-w-[280px] animate-pulse rounded bg-[var(--panel-2,#1c2127)]" />
+          <span className="smhq-skeleton" style={{ display: 'block', height: 11, width: '78%', borderRadius: 4 }} />
         ) : whyNow ? (
-          <span className={cx.muted}>{whyNow}</span>
+          <span
+            className={`smhq-truncate ${match?.fallback ? 'smhq-bench-why-fallback' : 'smhq-bench-why'}`}
+            style={{ display: 'block', fontSize: 12.5 }}
+            title={whyNow}
+          >
+            {whyNow}
+          </span>
         ) : (
-          <span className={cx.muted}>No score yet for this role.</span>
+          <span className="smhq-muted" style={{ fontSize: 12.5 }}>No score yet for this role.</span>
         )}
       </div>
 
-      {/* Always tappable on touch (no hover state there); desktop keeps the hover reveal. */}
-      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={() => onCompose(candidate.id)}
-          className={`rounded-[6px] border px-2 py-1 text-xs ${cx.border} ${cx.ink} hover:bg-[var(--panel-2,#1c2127)] ${cx.focusRing}`}
-        >
+      <div className="smhq-bench-actions">
+        <button type="button" onClick={() => onCompose(candidate.id)} className="smhq-row-btn smhq-focus-ring">
           Reach out
         </button>
-        <button
-          type="button"
-          onClick={() => onSnooze(candidate.id)}
-          className={`rounded-[6px] border px-2 py-1 text-xs ${cx.border} ${cx.muted} hover:bg-[var(--panel-2,#1c2127)] ${cx.focusRing}`}
-        >
+        <button type="button" onClick={() => onSnooze(candidate.id)} className="smhq-row-btn smhq-focus-ring smhq-bench-only-wide">
           Snooze
         </button>
       </div>

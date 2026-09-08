@@ -1,16 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { Candidate, Match } from '../../types';
 import { dataService } from '../../services/dataService';
-import { aiService } from '../../services/aiService';
-
-/** FLIP window — the reorder plays once per sync, capped at 300ms per BLUEPRINT-v2.md. */
-const FLIP_WINDOW_MS = 320;
+import { useAppUI, type SyncProgress, type SyncPhase } from '../../app/store';
 
 /** Stable empty-array references so a `?? []` fallback doesn't defeat memoization every render. */
 const EMPTY_CANDIDATES: Candidate[] = [];
 const EMPTY_MATCHES: Match[] = [];
 
-export type SyncPhase = 'idle' | 'loading' | 'syncing' | 'error';
+export type { SyncPhase };
 
 export interface UseSyncBenchResult {
   role: ReturnType<typeof dataService.hooks.useRole>;
@@ -21,28 +18,23 @@ export interface UseSyncBenchResult {
   phase: SyncPhase;
   error: string | null;
   usedFallback: boolean;
+  /** How many of this role's rows are labelled keyword fit rather than AI-scored. */
+  fallbackCount: number;
   lastSyncedAt: number | null;
-  /** True for ~300ms right after a sync — gates the FLIP transition so it plays once. */
+  /** Wave counter while a sync is in flight — "wave 3 of 5". Null when idle. */
+  progress: SyncProgress | null;
+  /** True for ~340ms right after a sync — gates the FLIP transition so it plays once. */
   flipActive: boolean;
   sync: () => Promise<void>;
 }
 
 /**
- * Owns the bench's sync orchestration for one role: skeleton state while scoring is in
- * flight, matches upserted into Dexie via dataService (so `matchesByCandidate` updates live
- * through dataService's own useLiveQuery hooks), and a short `flipActive` window BenchView
- * uses to gate its one-time FLIP reorder animation.
- *
- * `dataService.prepareScoreRequest` already short-circuits to zero network when nothing
- * changed since the last score (matches hash comparison) — BLUEPRINT-v2.md's cache contract.
+ * A read-only view of the app-wide sync (src/app/store.tsx) scoped to one role, plus that
+ * role's live Dexie data. Every screen that shows scores — bench, shortlist, map, board —
+ * uses this, so one sync lights all of them up together instead of each running its own.
  */
 export function useSyncBench(roleId: string | undefined): UseSyncBenchResult {
-  const [phase, setPhase] = useState<SyncPhase>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const [usedFallback, setUsedFallback] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
-  const [flipActive, setFlipActive] = useState(false);
-  const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { syncPhase, syncRoleId, syncProgress, syncError, flipActive, lastSync, runSync } = useAppUI();
 
   const role = dataService.hooks.useRole(roleId);
   const candidates = dataService.hooks.useCandidates() ?? EMPTY_CANDIDATES;
@@ -54,39 +46,24 @@ export function useSyncBench(roleId: string | undefined): UseSyncBenchResult {
     return map;
   }, [matches]);
 
+  const fallbackCount = useMemo(() => matches.filter(m => m.fallback).length, [matches]);
+
+  const isThisRole = !!roleId && syncRoleId === roleId;
   const sync = useCallback(async () => {
-    if (!roleId) return;
-    setPhase('syncing');
-    setError(null);
+    if (roleId) await runSync(roleId);
+  }, [roleId, runSync]);
 
-    try {
-      const prepared = await dataService.prepareScoreRequest(roleId);
-
-      if (prepared.unchanged) {
-        // Identical hash to what's already stored — zero network, per BLUEPRINT-v2.md.
-        setUsedFallback(false);
-        setLastSyncedAt(Date.now());
-        setPhase('idle');
-        return;
-      }
-
-      const { scored, fallback } = await aiService.scoreRole(prepared.role, prepared.candidates);
-      await dataService.applyScoreResults(roleId, prepared.hash, scored);
-
-      setUsedFallback(fallback);
-      setLastSyncedAt(Date.now());
-      setPhase('idle');
-
-      // Open the FLIP window once, then close it so later re-renders (scroll, unrelated
-      // writes) don't replay the reorder animation.
-      setFlipActive(true);
-      if (flipTimer.current) clearTimeout(flipTimer.current);
-      flipTimer.current = setTimeout(() => setFlipActive(false), FLIP_WINDOW_MS);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not sync the bench — please try again.');
-      setPhase('error');
-    }
-  }, [roleId]);
-
-  return { role, candidates, matchesByCandidate, phase, error, usedFallback, lastSyncedAt, flipActive, sync };
+  return {
+    role,
+    candidates,
+    matchesByCandidate,
+    phase: isThisRole ? syncPhase : 'idle',
+    error: isThisRole ? syncError : null,
+    usedFallback: fallbackCount > 0 && fallbackCount === matches.length,
+    fallbackCount,
+    lastSyncedAt: lastSync && lastSync.roleId === roleId ? lastSync.at : null,
+    progress: isThisRole ? syncProgress : null,
+    flipActive: isThisRole ? flipActive : false,
+    sync,
+  };
 }

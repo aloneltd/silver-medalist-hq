@@ -11,7 +11,7 @@ import type { Role, IngestJdResponseBody } from '../../types';
 export function PasteJdInline() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setSelectedRoleId } = useAppUI();
+  const { setSelectedRoleId, runSync } = useAppUI();
   const { push } = useToast();
   const navigate = useNavigate();
 
@@ -53,8 +53,8 @@ export function PasteJdInline() {
     await dataService.put('roles', role);
     setSelectedRoleId(role.id);
     setLoading(false);
-    push(`${role.title} added.`, { tone: 'success' });
     navigate('/bench');
+    void runSync(role.id);
   };
 
   return (

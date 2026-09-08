@@ -1,20 +1,98 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDossierLink } from '../../app/useDossierLink';
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { useAppUI } from '../../app/store';
 import { useSyncBench } from './useSyncBench';
-import { cx } from './lib/tokens';
 import { usePrefersReducedMotion } from './lib/motion';
+import { Avatar, FitRing } from '../../ui';
 
 export interface ShortlistPanelProps {
   roleId: string;
   limit?: number;
 }
 
+/**
+ * Types `text` out at ~55 chars/sec while `run` is true, then holds the full string. Used for
+ * the why-now lines after a sync: the reveal is the app finishing its sentence out loud, not
+ * a fake loading bar — it starts only once the row's real score has landed.
+ */
+function useTypewriter(text: string, run: boolean, startDelayMs = 0): { shown: string; done: boolean } {
+  const reduced = usePrefersReducedMotion();
+  const active = run && !reduced;
+  // The progress carries the key of the string it belongs to, so a new sentence starts from
+  // zero characters rather than briefly flashing the previous one's length.
+  const key = `${startDelayMs}|${text}`;
+  const [progress, setProgress] = useState<{ key: string; n: number }>({ key: '', n: 0 });
+  const raf = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const started = performance.now() + startDelayMs;
+    const CPS = 55;
+    const tick = (t: number) => {
+      const elapsed = t - started;
+      const n = elapsed <= 0 ? 0 : Math.floor((elapsed / 1000) * CPS);
+      setProgress({ key, n });
+      if (n < text.length) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+  }, [key, text.length, active, startDelayMs]);
+
+  const shown = !active ? text : (progress.key === key ? text.slice(0, progress.n) : '');
+  return { shown, done: shown.length >= text.length };
+}
+
+function ShortlistCard({
+  rank, name, score, why, meta, stream, onReachOut, onOpen,
+}: {
+  rank: number;
+  name: string;
+  score: number;
+  why: string;
+  meta: string;
+  /** True right after a sync — the why-now line types itself in rather than appearing. */
+  stream: boolean;
+  onReachOut: () => void;
+  onOpen: () => void;
+}) {
+  const { shown, done } = useTypewriter(why, stream, Math.min(rank * 90, 700));
+
+  return (
+    <div className="smhq-shortlist-card">
+      <span className={`smhq-rank smhq-rank-${rank}`}>{rank}</span>
+      <div style={{ minWidth: 0 }}>
+        <button
+          type="button"
+          onClick={onOpen}
+          style={{ background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}
+          className="smhq-focus-ring"
+        >
+          <Avatar name={name} size={22} />
+          <span style={{ minWidth: 0 }}>
+            <span className="smhq-shortlist-name smhq-truncate">{name}</span>
+            <span className="smhq-shortlist-meta smhq-truncate" style={{ display: 'block' }}>{meta}</span>
+          </span>
+        </button>
+        <p className="smhq-shortlist-why">
+          {shown}
+          {!done && <span className="smhq-caret" aria-hidden="true" />}
+        </p>
+        <button type="button" onClick={onReachOut} className="smhq-row-btn smhq-focus-ring" style={{ marginTop: 8 }}>
+          Reach out
+        </button>
+      </div>
+      <FitRing value={score} size={38} label={`${name}: fit ${Math.round(score)} of 100`} />
+    </div>
+  );
+}
+
 /** Top-N ranked candidates for a role, with the why-now line — the shortlist BLUEPRINT-v2.md
  *  describes appearing after a sync ("Shortlist panel (top 8) with why-now lines streaming in"). */
 export function ShortlistPanel({ roleId, limit = 8 }: ShortlistPanelProps) {
-  const { role, candidates, matchesByCandidate, phase } = useSyncBench(roleId);
+  const { role, candidates, matchesByCandidate, phase, lastSyncedAt } = useSyncBench(roleId);
   const { openComposer } = useAppUI();
+  const { openCandidate } = useDossierLink();
   const reduced = usePrefersReducedMotion();
 
   const top = useMemo(() => {
@@ -25,22 +103,34 @@ export function ShortlistPanel({ roleId, limit = 8 }: ShortlistPanelProps) {
       .slice(0, limit);
   }, [candidates, matchesByCandidate, limit]);
 
+  const streamKey = String(lastSyncedAt ?? 'initial');
+
   return (
     <LazyMotion features={domAnimation} strict>
-      <aside aria-label={`Shortlist for ${role?.title ?? 'this role'}`} className={`flex h-full min-h-0 flex-col ${cx.surface} ${cx.radius}`}>
-        <header className="border-b px-3 py-2" style={{ borderColor: 'var(--border,#262c34)' }}>
-          <h2 className={`text-sm font-semibold ${cx.ink}`}>Shortlist{role ? ` — ${role.title}` : ''}</h2>
-          <p className={`text-xs ${cx.muted}`}>Top {limit} by fit, active candidates only.</p>
+      <m.aside
+        aria-label={`Shortlist for ${role?.title ?? 'this role'}`}
+        className="smhq-shortlist"
+        // The sync moment: the whole panel slides in once the last wave lands.
+        key={streamKey}
+        initial={reduced || !lastSyncedAt ? false : { opacity: 0, x: 24 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <header className="smhq-shortlist-head">
+          <h2>Shortlist{role ? ` — ${role.title}` : ''}</h2>
+          <p>Top {limit} by fit, contactable candidates only.</p>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-auto p-2">
+        <div className="smhq-shortlist-list">
           {phase === 'syncing' && top.length === 0 &&
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-20 animate-pulse rounded-[8px] bg-[var(--panel-2,#1c2127)]" />
+              <div key={i} className="smhq-skeleton" style={{ height: 76, borderRadius: 'var(--radius-md)' }} />
             ))}
 
           {top.length === 0 && phase !== 'syncing' && (
-            <p className={`p-3 text-sm ${cx.muted}`}>No scored candidates yet — sync the bench for this role.</p>
+            <p className="smhq-muted" style={{ padding: 12, fontSize: 13 }}>
+              No scored candidates yet — sync the bench for this role.
+            </p>
           )}
 
           <AnimatePresence initial={false}>
@@ -48,31 +138,26 @@ export function ShortlistPanel({ roleId, limit = 8 }: ShortlistPanelProps) {
               <m.div
                 key={candidate.id}
                 layout
-                initial={reduced ? false : { opacity: 0, y: 8 }}
+                initial={reduced ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, delay: reduced ? 0 : Math.min(i * 0.05, 0.3) }}
-                className={`rounded-[8px] border p-2 ${cx.border}`}
+                transition={{ duration: 0.25, delay: reduced ? 0 : Math.min(i * 0.045, 0.32) }}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`truncate text-sm font-medium ${cx.ink}`}>{i + 1}. {candidate.name}</span>
-                  <span className={`shrink-0 font-mono text-sm ${cx.accentText}`}>
-                    {Math.round(match.override?.score ?? match.score)}
-                  </span>
-                </div>
-                <p className={`mt-1 text-xs ${cx.muted}`}>{match.why}</p>
-                <button
-                  type="button"
-                  onClick={() => openComposer({ candidateId: candidate.id, roleId })}
-                  className={`mt-2 rounded-[6px] border px-2 py-1 text-xs ${cx.border} ${cx.ink} hover:bg-[var(--panel-2,#1c2127)] ${cx.focusRing}`}
-                >
-                  Reach out
-                </button>
+                <ShortlistCard
+                  rank={i + 1}
+                  name={candidate.name}
+                  score={match.override?.score ?? match.score}
+                  why={match.override?.reason ?? match.why}
+                  meta={`${candidate.currentTitle} · ${candidate.currentEmployer}`}
+                  stream={!!lastSyncedAt}
+                  onOpen={() => openCandidate(candidate.id)}
+                  onReachOut={() => openComposer({ candidateId: candidate.id, roleId })}
+                />
               </m.div>
             ))}
           </AnimatePresence>
         </div>
-      </aside>
+      </m.aside>
     </LazyMotion>
   );
 }

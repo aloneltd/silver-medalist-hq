@@ -1,21 +1,28 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Candidate, Match, BoardStage } from '../../types';
-import { Chip } from '../../ui';
+import { Avatar, Chip, FitRing } from '../../ui';
 import { daysSince, STALE_DAYS, BOARD_STAGES } from './stageMeta';
+
+/** Stages where a card is actually in motion — the only ones where "stale" means anything. */
+const IN_MOTION: BoardStage[] = ['reached_out', 'replied', 'interviewing', 'offer'];
 
 export interface BoardCardProps {
   candidate: Candidate;
   match: Match;
+  /** Unused for display (the board header already names the role) — kept for the a11y label. */
+  roleTitle?: string;
   onOpen: (id: string) => void;
   onMove: (candidateId: string, toStage: BoardStage) => void;
   pulseStale: boolean;
 }
 
-export function BoardCard({ candidate, match, onOpen, onMove, pulseStale }: BoardCardProps) {
+export function BoardCard({ candidate, match, roleTitle, onOpen, onMove, pulseStale }: BoardCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: candidate.id });
   const warmthDays = daysSince(candidate.warmthAt);
-  const stale = candidate.status === 'active' && warmthDays > STALE_DAYS;
+  // A Warm card sitting untouched for 300 days is not "stale", it is just the bench. Amber is
+  // reserved for someone we started a conversation with and then let go quiet.
+  const stale = IN_MOTION.includes(match.stage) && warmthDays > STALE_DAYS;
   const score = match.override?.score ?? match.score;
 
   const style = {
@@ -40,12 +47,14 @@ export function BoardCard({ candidate, match, onOpen, onMove, pulseStale }: Boar
         >
           ⠿
         </button>
-        <button type="button" className="smhq-board-card-name" onClick={() => onOpen(candidate.id)}>
+        <Avatar name={candidate.name} size={24} />
+        <button type="button" className="smhq-board-card-name smhq-truncate" onClick={() => onOpen(candidate.id)}>
           {candidate.name}
         </button>
+        <FitRing value={score} size={28} stroke={3} label={`${candidate.name}: fit ${Math.round(score)} of 100`} />
       </div>
       <div className="smhq-board-card-meta">
-        <span className="smhq-board-card-score">{Math.round(score)}</span>
+        <span className="smhq-truncate">{candidate.currentTitle} · {candidate.currentEmployer}</span>
         <span className="smhq-board-card-days">{warmthDays}d</span>
         {stale && <Chip as="span" tone="amber">Stale</Chip>}
       </div>

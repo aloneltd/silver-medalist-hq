@@ -39,38 +39,62 @@ interface AuthContextValue {
 const LOCAL_USER: AuthUser = { email: 'local', name: 'Local workspace', picture: '' };
 
 const AuthContext = createContext<AuthContextValue>({
-  user: null, accessToken: null, mode: 'local', googleConfigured: false, isLoading: true, error: null,
+  user: LOCAL_USER, accessToken: null, mode: 'local', googleConfigured: false, isLoading: false, error: null,
   signIn: () => {}, enterLocalMode: () => {}, signOut: () => {}, clearError: () => {}
 });
 
-/** Shared state for both providers: restores a saved Google token or the local-mode flag. */
-function useAuthState() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [mode, setMode] = useState<AuthMode>('local');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface RestoredAuth {
+  user: AuthUser;
+  accessToken: string | null;
+  mode: AuthMode;
+}
 
+/**
+ * Resolved SYNCHRONOUSLY, in a useState initializer rather than an effect, and defaulting to
+ * the local workspace when there is nothing saved.
+ *
+ * 2026-09-08 polish pass: this app used to open on a sign-in card that a first-time visitor
+ * had to click through before seeing anything. Nothing here needs an account — the workspace
+ * is IndexedDB in this browser — so the gate was pure friction in front of the product, and
+ * resolving it in an effect also cost a spinner frame on every load. Google sign-in still
+ * exists, as an *upgrade* (Drive sync for the owner) offered in the top bar and in Settings,
+ * and a deep link now lands where it points instead of on a gate.
+ */
+function restoreAuth(): RestoredAuth {
+  try {
+    const saved = localStorage.getItem(TOKEN_KEY);
+    if (saved) {
+      const data: TokenData = JSON.parse(saved) as TokenData;
+      if (data && data.expiry > Date.now()) {
+        return {
+          user: { email: data.email, name: data.name, picture: data.picture },
+          accessToken: data.access_token,
+          mode: 'google',
+        };
+      }
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch { /* private mode / cleared storage — fall through to the local workspace */ }
+  return { user: LOCAL_USER, accessToken: null, mode: 'local' };
+}
+
+/** Shared state for both providers: restores a saved Google token, else the local workspace. */
+function useAuthState() {
+  // Lazy initializers: each runs once, on mount, before the first paint — no effect, no
+  // spinner frame, no gate.
+  const [user, setUser] = useState<AuthUser | null>(() => restoreAuth().user);
+  const [accessToken, setAccessToken] = useState<string | null>(() => restoreAuth().accessToken);
+  const [mode, setMode] = useState<AuthMode>(() => restoreAuth().mode);
+  const [error, setError] = useState<string | null>(null);
+  const isLoading = false;
+
+  // Remember that this browser has a local workspace, so a later Drive sign-out returns here
+  // rather than to a dead end.
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(TOKEN_KEY);
-      if (saved) {
-        const data: TokenData = JSON.parse(saved);
-        if (data.expiry > Date.now()) {
-          setUser({ email: data.email, name: data.name, picture: data.picture });
-          setAccessToken(data.access_token);
-          setMode('google');
-        } else {
-          localStorage.removeItem(TOKEN_KEY);
-        }
-      }
-      if (!saved && localStorage.getItem(LOCAL_MODE_KEY) === '1') {
-        setUser(LOCAL_USER);
-        setMode('local');
-      }
-    } catch {}
-    setIsLoading(false);
-  }, []);
+    if (mode === 'local') {
+      try { localStorage.setItem(LOCAL_MODE_KEY, '1'); } catch { /* ignore */ }
+    }
+  }, [mode]);
 
   const enterLocalMode = useCallback(() => {
     try { localStorage.setItem(LOCAL_MODE_KEY, '1'); } catch {}
@@ -81,11 +105,9 @@ function useAuthState() {
   }, []);
 
   const signOut = useCallback(() => {
-    try {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(LOCAL_MODE_KEY);
-    } catch {}
-    setUser(null);
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+    // Signing out of Drive drops back to the local workspace — there is no gate to land on.
+    setUser(LOCAL_USER);
     setAccessToken(null);
     setMode('local');
   }, []);

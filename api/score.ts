@@ -8,87 +8,129 @@ import type {
 
 const MAX_CANDIDATES_PER_CALL = 60
 
-const RESPONSE_SCHEMA = `{
-  "roleId": "string",
-  "scored": [{
-    "candidateId": "string",
-    "score": number,
-    "sub": { "skills": number, "seniority": number, "comp": number, "timing": number },
-    "why": "string — one grounded sentence, cite the candidate's own history, never invent facts",
-    "flags": ["string"]
-  }]
-}`
+/**
+ * The prompt is deliberately terse (2026-09-08 polish pass). The client now sends WAVES of 12
+ * instead of one 40-60 candidate call, because Mark's Groq tier is capped at 8,000 tokens per
+ * minute on gpt-oss-120b/20b: a single 40-candidate call needed ~8,800 tokens and was
+ * structurally guaranteed to 429, which is why a "full bench sync" always landed on the
+ * keyword-fit fallback.
+ *
+ * Two things keep a whole 60-row bench inside that cap:
+ *   1. Candidates go over as one terse pipe-delimited line each (~35 tokens), not JSON.
+ *   2. The model answers by wave-local INDEX with single-letter keys (~35 tokens a row),
+ *      instead of echoing a 26-character ULID and a schema's worth of field names.
+ * A 12-candidate wave costs ≈1.2k tokens round trip, so five waves — the whole bench — fit
+ * inside one minute's budget with room to spare.
+ */
+const RESPONSE_SHAPE = `{"r":[{"i":<index>,"s":<0-100 overall>,"k":<skills>,"l":<seniority>,"c":<comp>,"t":<timing>,"w":"<one short grounded sentence, max 22 words>","f":["<flag>"]}]}`
 
 function isFiniteNum(n: unknown): n is number {
   return typeof n === 'number' && Number.isFinite(n)
 }
 
-/** Validates one row from the model's response against the candidate set. Drops anything malformed. */
-function validateRow(row: unknown, validIds: Set<string>): ScoredRow | null {
+const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
+
+function daysAgo(iso: string): number {
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return 0
+  return Math.max(0, Math.round((Date.now() - t) / 86_400_000))
+}
+
+function monthsAgo(iso: string): number {
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return 0
+  return Math.max(0, Math.round((Date.now() - t) / (30.4375 * 86_400_000)))
+}
+
+/** "in band" / "18% over" / "under band" / "—" — the comp signal in three tokens, not a JSON object. */
+function compRelation(c: ScoreCandidateInput, role: ScoreRoleInput): string {
+  const snap = c.compExpectation ?? c.compAtLastProcess
+  if (!snap || snap.currency !== role.compBand.currency) return '?'
+  const { min, max } = role.compBand
+  if (!min && !max) return '?'
+  if (snap.amount >= min && snap.amount <= max) return 'in band'
+  if (snap.amount < min) return 'under band'
+  return `${Math.round(((snap.amount - max) / Math.max(1, max)) * 100)}% over`
+}
+
+/** One compact line per candidate — name, seniority, top 8 skills, comp, last process, warmth. */
+function candidateLine(c: ScoreCandidateInput, role: ScoreRoleInput, index: number): string {
+  const prior = (c.priorReason ?? '').replace(/[|\n]/g, ' ').trim().slice(0, 90) || 'no prior process'
+  return [
+    index,
+    c.name,
+    `${c.seniority} ${c.currentTitle}`.slice(0, 44),
+    c.skills.slice(0, 8).join(','),
+    compRelation(c, role),
+    `${monthsAgo(c.tenureStart)}mo tenure`,
+    prior,
+    `${daysAgo(c.warmthAt)}d since touch`,
+    c.status === 'active' ? '' : c.status,
+  ].filter(Boolean).join('|')
+}
+
+/** Validates one compact row against the wave and expands it back to the public ScoredRow shape. */
+function validateRow(row: unknown, candidates: ScoreCandidateInput[]): ScoredRow | null {
   if (!row || typeof row !== 'object') return null
   const r = row as Record<string, unknown>
-  if (typeof r.candidateId !== 'string' || !validIds.has(r.candidateId)) return null
-  if (!isFiniteNum(r.score)) return null
-  const sub = r.sub as Record<string, unknown> | undefined
-  if (!sub || !isFiniteNum(sub.skills) || !isFiniteNum(sub.seniority) || !isFiniteNum(sub.comp) || !isFiniteNum(sub.timing)) return null
-  if (typeof r.why !== 'string' || !r.why.trim()) return null
-  const flags = Array.isArray(r.flags) ? r.flags.filter((f): f is string => typeof f === 'string') : []
-  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
+  const idx = typeof r.i === 'number' ? r.i : Number(r.i)
+  if (!Number.isInteger(idx) || idx < 0 || idx >= candidates.length) return null
+  if (!isFiniteNum(r.s)) return null
+  if (!isFiniteNum(r.k) || !isFiniteNum(r.l) || !isFiniteNum(r.c) || !isFiniteNum(r.t)) return null
+  if (typeof r.w !== 'string' || !r.w.trim()) return null
+  const flags = Array.isArray(r.f) ? r.f.filter((f): f is string => typeof f === 'string') : []
   return {
-    candidateId: r.candidateId,
-    score: clamp(r.score),
-    sub: { skills: clamp(sub.skills), seniority: clamp(sub.seniority), comp: clamp(sub.comp), timing: clamp(sub.timing) },
-    why: r.why.trim().slice(0, 400),
-    flags: flags.slice(0, 5),
+    candidateId: candidates[idx].id,
+    score: clamp(r.s),
+    sub: { skills: clamp(r.k), seniority: clamp(r.l), comp: clamp(r.c), timing: clamp(r.t) },
+    why: r.w.trim().slice(0, 400),
+    flags: flags.slice(0, 4),
   }
 }
 
 async function runScorePass(role: ScoreRoleInput, candidates: ScoreCandidateInput[], attempt: number): Promise<ScoredRow[]> {
-  const system = `You are an elite recruiting analyst scoring silver-medalist candidates against one open role.
-Score EVERY candidate in the input, 0-100. Sub-scores (skills, seniority, comp, timing) are each 0-100.
-"why" must be one grounded sentence using ONLY the facts given (skills, current title/employer, tenure, comp,
-prior process reason) — never invent a company, a number, or an outcome that isn't in the input.
-Return ONLY valid JSON matching this exact schema, one row per candidate:
-${RESPONSE_SCHEMA}`
+  const system = `You are an elite recruiting analyst scoring past candidates against one open role.
+Score EVERY row, 0-100 overall (s) plus sub-scores skills (k), seniority (l), comp (c), timing (t).
+"w" is ONE short sentence grounded ONLY in that row's own facts — never invent a company, number or outcome.
+Answer with JSON only, exactly this shape, one entry per input row, referencing rows by their index:
+${RESPONSE_SHAPE}`
 
-  const prompt = `ROLE:\n${JSON.stringify(role, null, 2)}\n\nCANDIDATES:\n${JSON.stringify(candidates, null, 2)}\n\n` +
-    `Score all ${candidates.length} candidates. Return ONLY JSON, no markdown.` +
-    (attempt ? `\n\nRun ${attempt + 1}: the previous pass returned no usable rows. Be decisive; score every candidate.` : '')
+  const roleLine = [
+    `TITLE: ${role.title} (${role.level}) — ${role.location}`,
+    `BAND: ${role.compBand.min}-${role.compBand.max} ${role.compBand.currency}`,
+    `MUST: ${role.mustHaves.join(', ') || 'none stated'}`,
+    `NICE: ${role.niceToHaves.join(', ') || 'none'}`,
+    `DEALBREAKERS: ${role.dealbreakers.join(', ') || 'none'}`,
+  ].join('\n')
 
-  // reasoning_effort is fixed to 'low' inside fastai's groqBody() — every Groq call already
-  // gets that, no option to pass here.
-  //
-  // timeoutMs is deliberately short (fastai's default is 20s, shared across the WHOLE
-  // Groq+Gemini provider ladder in one AbortController, not per-provider). BLUEPRINT-v2.md's
-  // Definition of Done wants a role synced in under 4s; on Mark's actual Groq tier a role with
-  // more than ~25-30 active candidates structurally exceeds the account's 8,000 TPM cap for
-  // gpt-oss-120b/20b (measured: a 40-candidate call needs ~8,800 tokens), so the AI branch is
-  // *going* to fail for a typical full-bench sync — the only question is how long the UI waits
-  // to find that out. A live provider that's genuinely just slow (not rate-limited) rarely
-  // needs anywhere near 20s to answer; a live provider that's rate-limited answers in well
-  // under a second. Capping at 3s means a real, in-budget score still completes comfortably,
-  // while a doomed one hands off to the deterministic keyword-fit fallback fast instead of
-  // making the recruiter stare at a spinner for 20-40s across the two runScorePass attempts.
+  const rows = candidates.map((c, i) => candidateLine(c, role, i)).join('\n')
+
+  const prompt = `${roleLine}\n\nCANDIDATES (index|name|level+title|skills|comp vs band|tenure|last process|warmth|status):\n${rows}\n\nScore all ${candidates.length} rows. JSON only.` +
+    (attempt ? `\n\nRetry: the previous pass returned no usable rows. Be decisive; return every index.` : '')
+
   const result = await complete({
     messages: [{ role: 'user', text: prompt }],
     system,
     json: true,
-    temperature: attempt ? 0.6 : 0.3,
-    maxTokens: 4096,
-    timeoutMs: 3000,
+    temperature: attempt ? 0.5 : 0.25,
+    maxTokens: 2048,
+    // A 12-row wave is small; 8s comfortably covers a genuinely slow-but-alive provider while
+    // a rate-limited one still fails fast (Groq answers a 429 in well under a second).
+    timeoutMs: 8000,
   })
 
-  const parsed = parseJson<{ scored?: unknown[] }>(result.text)
-  const validIds = new Set(candidates.map(c => c.id))
-  const rows = (parsed?.scored ?? [])
-    .map(row => validateRow(row, validIds))
+  const parsed = parseJson<{ r?: unknown[]; scored?: unknown[] }>(result.text)
+  const list = Array.isArray(parsed?.r) ? parsed.r : Array.isArray(parsed?.scored) ? parsed.scored : []
+  return list
+    .map(row => validateRow(row, candidates))
     .filter((r): r is ScoredRow => r !== null)
-  return rows
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-  if (!rateLimit(clientIp(req.headers as Record<string, unknown>), 20)) {
+  // Waves mean more requests per sync (5 for a 60-row bench), so the per-IP budget has to
+  // cover a couple of full syncs a minute rather than a couple of calls.
+  if (!rateLimit(clientIp(req.headers as Record<string, unknown>), 40)) {
     return res.status(429).json({ error: 'Too many requests. Please wait a moment.' })
   }
 
@@ -98,10 +140,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const role = body.role
-  // Server-side belt-and-braces: only ever score active candidates, and never a bare id
-  // list — silently drop rows missing required fields rather than 500ing the whole board.
+  // Server-side belt-and-braces. `opted_out` is a consent withdrawal: those people never
+  // reach an AI prompt, full stop. Every other status is scored — non-active people stay
+  // visible and comparable on the bench, and the UI de-prioritises them in ranking.
   const candidates = body.candidates.filter(c =>
-    c && typeof c.id === 'string' && c.status === 'active' && Array.isArray(c.skills))
+    c && typeof c.id === 'string' && c.status !== 'opted_out' && Array.isArray(c.skills))
 
   if (candidates.length > MAX_CANDIDATES_PER_CALL) {
     return res.status(400).json({

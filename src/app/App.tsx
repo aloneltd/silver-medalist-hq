@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../services/dataService';
 import { AppUIProvider, useAppUI } from './store';
 import { AppShell } from './AppShell';
-import { AuthGateScreen } from './AuthGateScreen';
 import { RolesView } from './RolesView';
 import { ToastProvider, Skeleton } from '../ui';
 import { TodayView } from '../features/today';
@@ -50,9 +49,12 @@ function BenchRoute() {
 }
 
 /**
- * One-time boot: migrate any v1 localStorage data, seed the sample bench if the DB is still
- * empty (dataService.init — both are idempotent), then, for the Drive-signed-in owner, run the
- * newer-of/conflict Drive sync once per sign-in. Safe to re-run on every load.
+ * One-time boot: migrate any v1 localStorage data, seed the pre-scored sample bench if the DB
+ * is still empty (dataService.init — both are idempotent), then, for the Drive-signed-in
+ * owner, run the newer-of/conflict Drive sync once per sign-in. Safe to re-run on every load.
+ *
+ * There is no sign-in gate in front of this any more: the workspace is local to the browser,
+ * so a first-time visitor lands straight on Today with a bench that is already scored.
  */
 function useBoot() {
   const { user, mode, accessToken } = useAuth();
@@ -88,13 +90,11 @@ function AppRoutes() {
 export function App() {
   return (
     <ToastProvider>
-      <AuthGateScreen>
-        <BrowserRouter>
-          <AppUIProvider>
-            <AppRoutes />
-          </AppUIProvider>
-        </BrowserRouter>
-      </AuthGateScreen>
+      <BrowserRouter>
+        <AppUIProvider>
+          <AppRoutes />
+        </AppUIProvider>
+      </BrowserRouter>
     </ToastProvider>
   );
 }

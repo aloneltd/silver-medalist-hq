@@ -10,9 +10,10 @@ export interface BoardColumnProps {
   onOpen: (id: string) => void;
   onMove: (candidateId: string, toStage: BoardStage) => void;
   pulsedIds: Set<string>;
+  roleTitle?: string;
 }
 
-export function BoardColumn({ meta, rows, onOpen, onMove, pulsedIds }: BoardColumnProps) {
+export function BoardColumn({ meta, rows, onOpen, onMove, pulsedIds, roleTitle }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `col-${meta.stage}` });
 
   return (
@@ -28,6 +29,7 @@ export function BoardColumn({ meta, rows, onOpen, onMove, pulsedIds }: BoardColu
               key={candidate.id}
               candidate={candidate}
               match={match}
+              roleTitle={roleTitle}
               onOpen={onOpen}
               onMove={onMove}
               pulseStale={pulsedIds.has(candidate.id)}

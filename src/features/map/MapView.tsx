@@ -6,7 +6,6 @@ import type { Candidate, Match } from '../../types';
 import { useAppUI } from '../../app/store';
 import { useDossierLink } from '../../app/useDossierLink';
 import { usePrefersReducedMotion } from '../bench/lib/motion';
-import { cx, token } from '../bench/lib/tokens';
 import { buildPoints, DEFAULT_MARGINS, type MapPoint } from './lib/geometry';
 import { MapTooltip } from './MapTooltip';
 
@@ -145,17 +144,30 @@ export function MapView({ roleId: roleIdProp }: MapViewProps = {}) {
 
   const quadX = size.width / 2;
   const quadY = size.height / 2;
+  const innerLeft = DEFAULT_MARGINS.left;
+  const innerTop = DEFAULT_MARGINS.top;
+  const innerRight = size.width - DEFAULT_MARGINS.right;
+  const innerBottom = size.height - DEFAULT_MARGINS.bottom;
+
+  // Only the five strongest fits get a name on the chart. Labelling all sixty would be noise;
+  // labelling none makes the reader hover blind to find the point that matters.
+  const labelled = useMemo(
+    () => [...points].sort((a, b) => b.fit - a.fit).slice(0, 5),
+    [points],
+  );
 
   return (
-    <section aria-label="Map" className={`flex h-full min-h-0 flex-col ${cx.ink}`}>
-      <header className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: token.border }}>
-        <h2 className="text-sm font-semibold">Map{role ? ` — ${role.title}` : ''}</h2>
-        {!roleId && <span className={`text-sm ${cx.muted}`}>Pick a role to plot fit.</span>}
+    <section aria-label="Map" className="smhq-ink" style={{ display: 'flex', height: '100%', minHeight: 0, flexDirection: 'column' }}>
+      <header
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--panel-border)', padding: '10px 14px' }}
+      >
+        <h2 style={{ fontSize: 14, fontWeight: 600 }}>Map{role ? ` — ${role.title}` : ''}</h2>
+        {!roleId && <span className="smhq-muted" style={{ fontSize: 13 }}>Pick a role to plot fit.</span>}
       </header>
 
-      <div ref={containerRef} className="relative min-h-0 flex-1 overflow-hidden">
+      <div ref={containerRef} style={{ position: 'relative', minHeight: 0, flex: 1, overflow: 'hidden' }}>
         {roleId && points.length === 0 && (
-          <p className={`absolute inset-0 flex items-center justify-center text-sm ${cx.muted}`}>
+          <p className="smhq-muted" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
             No scored candidates yet — sync the bench for this role.
           </p>
         )}
@@ -168,23 +180,49 @@ export function MapView({ roleId: roleIdProp }: MapViewProps = {}) {
           tabIndex={points.length ? 0 : -1}
           onKeyDown={handleKeyDown}
           onFocus={() => { if (!activeId && points.length) setActiveId(points[0].id); }}
-          className={cx.focusRing}
+          className="smhq-focus-ring"
         >
+          {/* Quadrant washes at 4% — enough to read the four regions as regions, never enough
+              to compete with the points themselves. */}
+          <g className="smhq-map-quadrant">
+            <rect x={quadX} y={innerTop} width={Math.max(0, innerRight - quadX)} height={Math.max(0, quadY - innerTop)}
+              fill="var(--accent)" opacity={0.04} />
+            <rect x={quadX} y={quadY} width={Math.max(0, innerRight - quadX)} height={Math.max(0, innerBottom - quadY)}
+              fill="var(--amber)" opacity={0.04} />
+            <rect x={innerLeft} y={innerTop} width={Math.max(0, quadX - innerLeft)} height={Math.max(0, quadY - innerTop)}
+              fill="var(--ink-muted)" opacity={0.03} />
+            <rect x={innerLeft} y={quadY} width={Math.max(0, quadX - innerLeft)} height={Math.max(0, innerBottom - quadY)}
+              fill="var(--ink-muted)" opacity={0.02} />
+          </g>
+
           {/* axes */}
-          <line x1={DEFAULT_MARGINS.left} y1={size.height - DEFAULT_MARGINS.bottom} x2={size.width - DEFAULT_MARGINS.right} y2={size.height - DEFAULT_MARGINS.bottom} stroke="#262c34" />
-          <line x1={DEFAULT_MARGINS.left} y1={DEFAULT_MARGINS.top} x2={DEFAULT_MARGINS.left} y2={size.height - DEFAULT_MARGINS.bottom} stroke="#262c34" />
-          <text x={size.width / 2} y={size.height - 10} textAnchor="middle" fontSize={11} fill="var(--muted,#8b95a1)">Fit for {role?.title ?? 'role'} →</text>
-          <text x={14} y={size.height / 2} textAnchor="middle" fontSize={11} fill="var(--muted,#8b95a1)" transform={`rotate(-90 14 ${size.height / 2})`}>← Days since touch</text>
+          <line className="smhq-map-axis" x1={innerLeft} y1={innerBottom} x2={innerRight} y2={innerBottom} />
+          <line className="smhq-map-axis" x1={innerLeft} y1={innerTop} x2={innerLeft} y2={innerBottom} />
+          <text className="smhq-map-label" x={size.width / 2} y={size.height - 10} textAnchor="middle">Fit for {role?.title ?? 'role'} →</text>
+          <text className="smhq-map-label" x={14} y={size.height / 2} textAnchor="middle" transform={`rotate(-90 14 ${size.height / 2})`}>← Days since touch</text>
 
           {/* quadrant divider + labels */}
-          <line x1={quadX} y1={DEFAULT_MARGINS.top} x2={quadX} y2={size.height - DEFAULT_MARGINS.bottom} stroke="#262c34" strokeDasharray="4 4" />
-          <line x1={DEFAULT_MARGINS.left} y1={quadY} x2={size.width - DEFAULT_MARGINS.right} y2={quadY} stroke="#262c34" strokeDasharray="4 4" />
-          <text x={size.width - DEFAULT_MARGINS.right} y={DEFAULT_MARGINS.top + 12} textAnchor="end" fontSize={11} fill="var(--accent,#35e0c8)">Contact now</text>
-          <text x={DEFAULT_MARGINS.left} y={DEFAULT_MARGINS.top + 12} textAnchor="start" fontSize={11} fill="var(--muted,#8b95a1)">Not a fit yet</text>
-          <text x={size.width - DEFAULT_MARGINS.right} y={size.height - DEFAULT_MARGINS.bottom - 6} textAnchor="end" fontSize={11} fill="var(--amber,#f5b53f)">Re-warm</text>
-          <text x={DEFAULT_MARGINS.left} y={size.height - DEFAULT_MARGINS.bottom - 6} textAnchor="start" fontSize={11} fill="var(--muted,#8b95a1)">Low priority</text>
+          <line className="smhq-map-axis" x1={quadX} y1={innerTop} x2={quadX} y2={innerBottom} strokeDasharray="4 4" />
+          <line className="smhq-map-axis" x1={innerLeft} y1={quadY} x2={innerRight} y2={quadY} strokeDasharray="4 4" />
+          <text className="smhq-map-quadlabel" x={innerRight} y={innerTop + 12} textAnchor="end" fill="var(--accent)">Contact now</text>
+          <text className="smhq-map-quadlabel" x={innerLeft} y={innerTop + 12} textAnchor="start" fill="var(--ink-faint)">Not a fit yet</text>
+          <text className="smhq-map-quadlabel" x={innerRight} y={innerBottom - 6} textAnchor="end" fill="var(--amber)">Re-warm</text>
+          <text className="smhq-map-quadlabel" x={innerLeft} y={innerBottom - 6} textAnchor="start" fill="var(--ink-faint)">Low priority</text>
 
           <g ref={gRef} />
+
+          {labelled.map(p => (
+            <text
+              key={p.id}
+              className="smhq-map-point-label"
+              x={p.x + p.r + 5}
+              y={p.y + 3.5}
+              textAnchor={p.x > size.width - 130 ? 'end' : 'start'}
+              dx={p.x > size.width - 130 ? -(p.r * 2 + 10) : 0}
+            >
+              {p.name}
+            </text>
+          ))}
 
           {activePoint && (
             <circle
@@ -192,7 +230,7 @@ export function MapView({ roleId: roleIdProp }: MapViewProps = {}) {
               cy={activePoint.y}
               r={activePoint.r + 4}
               fill="none"
-              stroke="var(--ink,#e8ecef)"
+              stroke="var(--ink-strong)"
               strokeWidth={2}
             />
           )}

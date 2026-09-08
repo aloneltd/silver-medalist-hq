@@ -4,6 +4,7 @@
 @import "./ui/primitives.css";
 @import "./app/app.css";
 @import "./features/features.css";
+@import "./features/bench/bench.css";
 
 @layer base {
   * {

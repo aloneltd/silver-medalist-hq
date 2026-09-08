@@ -14,9 +14,12 @@ import type { TodayQueueItem } from '../../types';
 /**
  * Landing route. BLUEPRINT-v2.md, council/designer.md "Screen one, in order": a proof line
  * with real numbers, the paste-a-JD anchor, the Today queue (≤5, each with a reason + one-tap
- * action), then — once a role is synced — the shortlist. Empty Today is a working state: the
- * paste box inline, not an illustration. Queue itself comes from B1's dataService.computeTodayQueue
- * (role-independent — it's about who's overdue, not who scores highest for one role).
+ * action), then the shortlist for the role that's open. Empty Today is a working state: the
+ * paste box inline, not an illustration.
+ *
+ * The queue is deliberately a *mix* — a resurface window opening, a top fit for the role you
+ * have open, an overdue follow-up, a comp figure that has aged out — rather than five copies
+ * of whichever rule shouts loudest (see dataService.computeTodayQueue).
  */
 export function TodayView() {
   const { selectedRoleId, selectedRole, openComposer, openPasteRole } = useAppUI();
@@ -24,13 +27,13 @@ export function TodayView() {
 
   const candidates = dataService.hooks.useCandidates() ?? [];
   const roleCount = useLiveQuery(() => db.roles.count(), [], 0) ?? 0;
-  const queue = dataService.hooks.useTodayQueue(5) ?? [];
+  const queue = dataService.hooks.useTodayQueue(5, selectedRoleId ?? undefined) ?? [];
 
   const activeCount = candidates.filter(c => c.status === 'active').length;
 
   const primaryAction = (item: TodayQueueItem) => {
     if (item.action.kind === 'reach_out' || item.action.kind === 'follow_up') {
-      openComposer({ candidateId: item.candidate.id, roleId: selectedRoleId ?? undefined });
+      openComposer({ candidateId: item.candidate.id, roleId: item.roleId ?? selectedRoleId ?? undefined });
     } else {
       openCandidate(item.candidate.id);
     }
@@ -41,16 +44,19 @@ export function TodayView() {
     void snoozeCandidate(item.candidate.id, until);
   };
 
-  const proofLine = activeCount === 0
-    ? "You don't have a bench yet."
-    : `${activeCount} ${activeCount === 1 ? 'person' : 'people'} you already interviewed and liked · ${queue.length} worth a message today.`;
-
   return (
     <div className="smhq-page smhq-today">
       <div className="smhq-page-header">
         <div>
           <h1>Today</h1>
-          <p className="smhq-proof-line">{proofLine}</p>
+          {activeCount === 0 ? (
+            <p className="smhq-proof-line">You don't have a bench yet.</p>
+          ) : (
+            <p className="smhq-proof-line">
+              <strong>{activeCount}</strong> {activeCount === 1 ? 'person' : 'people'} you already
+              interviewed and liked · <strong>{queue.length}</strong> worth a message today.
+            </p>
+          )}
         </div>
         {roleCount > 0 && (
           <Button variant="secondary" onClick={openPasteRole}>Paste another role</Button>

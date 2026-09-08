@@ -1,5 +1,4 @@
-import { cx } from '../bench/lib/tokens';
-import { STATUS_META } from '../bench/lib/tokens';
+import { Avatar, FitRing, StatusChip } from '../../ui';
 import type { MapPoint } from './lib/geometry';
 
 export interface MapTooltipProps {
@@ -10,22 +9,36 @@ export interface MapTooltipProps {
 
 /** A real card, not a native title tooltip — per BLUEPRINT-v2.md "tooltips are real cards." */
 export function MapTooltip({ point, x, y }: MapTooltipProps) {
-  const meta = STATUS_META[point.status] ?? STATUS_META.active;
   return (
     <div
       role="tooltip"
-      style={{ left: x, top: y }}
-      className={`pointer-events-none absolute z-30 w-56 -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-[8px] border p-2 ${cx.surface} ${cx.shadow}`}
+      style={{
+        left: x,
+        top: y,
+        position: 'absolute',
+        zIndex: 30,
+        width: 248,
+        transform: 'translate(-50%, calc(-100% - 14px))',
+        padding: 10,
+        pointerEvents: 'none',
+        borderRadius: 'var(--radius-md)',
+      }}
+      className="smhq-surface smhq-shadow"
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className={`truncate text-sm font-medium ${cx.ink}`}>{point.name}</span>
-        <span className={`font-mono text-sm ${cx.accentText}`}>{Math.round(point.fit)}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Avatar name={point.name} size={26} />
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span className="smhq-truncate" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink-strong)' }}>
+            {point.name}
+          </span>
+          <span className="smhq-muted" style={{ fontSize: 11 }}>{point.days}d since touch</span>
+        </span>
+        <FitRing value={point.fit} size={34} />
       </div>
-      <div className={`mt-0.5 flex items-center gap-1.5 text-xs ${meta.textClass}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClass}`} />
-        {meta.label} · {point.days}d since touch
+      <div style={{ marginTop: 6 }}>
+        <StatusChip status={point.status} compact />
       </div>
-      <p className={`mt-1 text-xs ${cx.muted}`}>{point.why}</p>
+      <p className="smhq-ink" style={{ marginTop: 6, fontSize: 11.5, lineHeight: 1.45 }}>{point.why}</p>
     </div>
   );
 }

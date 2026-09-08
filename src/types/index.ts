@@ -238,6 +238,10 @@ export interface TodayQueueItem {
   reason: string;
   action: TodayQueueAction;
   warmthDays: number;
+  /** Set when the item came from the selected role's ranking — drives the card's fit ring. */
+  roleId?: Id;
+  /** 0–100 fit for `roleId`, when this item is a top-fit suggestion for that role. */
+  fit?: number;
 }
 
 // =================================================================== AI: /api/score

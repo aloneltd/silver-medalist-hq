@@ -108,6 +108,7 @@ export function BoardView() {
               <BoardColumn
                 meta={meta}
                 rows={rowsByStage[meta.stage]}
+                roleTitle={selectedRole?.title}
                 onOpen={openCandidate}
                 onMove={requestMove}
                 pulsedIds={pulsedThisSession}

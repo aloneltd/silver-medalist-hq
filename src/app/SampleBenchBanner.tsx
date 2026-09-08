@@ -12,8 +12,8 @@ export function SampleBenchBanner() {
 
   return (
     <div className="smhq-sample-banner" role="note">
-      <span>Sample bench — this is demo data so you can see how it works.</span>
-      <button type="button" onClick={() => navigate('/settings')}>Start my own</button>
+      <span>Sample bench — 60 real-shaped candidates, already scored, so you can see how it works.</span>
+      <button type="button" onClick={() => navigate('/settings')}>Start my own bench</button>
     </div>
   );
 }

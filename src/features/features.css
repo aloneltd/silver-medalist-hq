@@ -3,6 +3,7 @@
 
 /* ------------------------------------------------------------------------------- proof line */
 .smhq-proof-line { font-size: 14.5px; color: var(--ink-muted); }
+.smhq-proof-line strong { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* ----------------------------------------------------------------------------------- today */
 .smhq-empty-today { align-items: stretch; }
@@ -16,13 +17,17 @@
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
   padding: var(--space-4);
 }
+.smhq-today-card:hover { border-color: color-mix(in srgb, var(--accent) 38%, var(--panel-border)); }
 .smhq-today-card-main {
   background: none; border: none; padding: 0; text-align: left; cursor: pointer; flex: 1; min-width: 0;
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; align-items: flex-start; gap: var(--space-3);
 }
-.smhq-today-card-head { display: flex; align-items: center; gap: 10px; }
-.smhq-today-card-name { font-weight: 600; color: var(--ink-strong); font-size: 14.5px; }
-.smhq-today-card-reason { color: var(--ink-muted); font-size: 13px; }
+.smhq-today-card-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.smhq-today-card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.smhq-today-card-name { font-weight: 700; color: var(--ink-strong); font-size: 14.5px; }
+.smhq-today-card-days { font-size: 11.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.smhq-today-card-sub { font-size: 11.5px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.smhq-today-card-reason { color: var(--ink); font-size: 13px; line-height: 1.45; margin-top: 2px; }
 .smhq-today-card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
 
 .smhq-today-shortlist { min-height: 320px; }
@@ -49,7 +54,7 @@
 
 /* ----------------------------------------------------------------------------------- board */
 .smhq-board-tabs { display: none; }
-.smhq-board-columns { display: grid; grid-auto-flow: column; grid-auto-columns: 236px; gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-3); }
+.smhq-board-columns { display: grid; grid-auto-flow: column; grid-auto-columns: 244px; gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-3); }
 
 .smhq-board-col {
   display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--panel-border);
@@ -67,11 +72,14 @@
   padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; touch-action: none;
 }
 .smhq-board-card-stale { border-color: color-mix(in srgb, var(--amber) 55%, var(--panel-border)); }
-.smhq-board-card-row { display: flex; align-items: center; gap: 6px; }
+.smhq-board-card-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.smhq-board-card-row .smhq-ring { margin-left: auto; }
 .smhq-board-card-handle { background: none; border: none; color: var(--ink-faint); cursor: grab; padding: 0 2px; font-size: 13px; }
 .smhq-board-card-handle:active { cursor: grabbing; }
-.smhq-board-card-name { background: none; border: none; color: var(--ink-strong); font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; padding: 0; }
-.smhq-board-card-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-faint); }
+.smhq-board-card-name { background: none; border: none; color: var(--ink-strong); font-size: 12.5px; font-weight: 600; text-align: left; cursor: pointer; padding: 0; min-width: 0; }
+.smhq-board-card-meta { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--ink-faint); min-width: 0; }
+.smhq-board-card-meta > span:first-child { flex: 1; min-width: 0; }
+.smhq-board-card-days { flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .smhq-board-card-score { color: var(--accent); font-weight: 700; }
 .smhq-board-card-move select {
   width: 100%; font-size: 11px; background: var(--panel); border: 1px solid var(--panel-border);

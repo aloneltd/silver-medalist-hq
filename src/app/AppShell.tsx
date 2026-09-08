@@ -31,8 +31,11 @@ const NAV = [
 /** The shell: left rail + top bar + routed content. Mounts CommandPalette, PasteRoleFlow and
  * the dossier drawer (via the `?c=` deep link) once, globally, so every route can trigger them. */
 export function AppShell() {
-  const { theme, toggleTheme, roles, selectedRoleId, setSelectedRoleId, openPasteRole, setPaletteOpen, railCollapsed, setRailCollapsed, composer, closeComposer } = useAppUI();
-  const { user, mode, signOut } = useAuth();
+  const {
+    theme, toggleTheme, roles, selectedRoleId, setSelectedRoleId, openPasteRole, setPaletteOpen,
+    railCollapsed, setRailCollapsed, composer, closeComposer, coachDismissed, dismissCoach,
+  } = useAppUI();
+  const { user, mode, googleConfigured, signIn, signOut, error: authError, clearError } = useAuth();
   const { candidateId, closeCandidate } = useDossierLink();
 
   return (
@@ -96,9 +99,18 @@ export function AppShell() {
             </select>
           </label>
 
-          <button type="button" className="smhq-btn smhq-btn-primary smhq-btn-md" onClick={openPasteRole}>
-            Paste a role
-          </button>
+          <span className="smhq-coach-anchor">
+            <button type="button" className="smhq-btn smhq-btn-primary smhq-btn-md" onClick={openPasteRole}>
+              Paste a role
+            </button>
+            {/* The one and only first-run hint. It disappears for good after the first sync. */}
+            {!coachDismissed && (
+              <span className="smhq-coach" role="note">
+                Try it: paste any job description and watch the bench re-rank.
+                <button type="button" className="smhq-coach-close" onClick={dismissCoach}>Got it</button>
+              </span>
+            )}
+          </span>
 
           <button
             type="button"
@@ -110,7 +122,20 @@ export function AppShell() {
             <span>Search or jump to…</span>
             <Kbd keys={['⌘', 'K']} />
           </button>
+
+          {mode === 'local' && googleConfigured && (
+            <button type="button" className="smhq-btn smhq-btn-secondary smhq-btn-sm smhq-topbar-signin" onClick={() => signIn()}>
+              Sign in with Google · Drive sync
+            </button>
+          )}
         </header>
+
+        {authError && (
+          <div className="smhq-auth-error" role="alert">
+            <span>{authError}</span>
+            <button type="button" onClick={clearError} aria-label="Dismiss">✕</button>
+          </div>
+        )}
 
         <SampleBenchBanner />
 

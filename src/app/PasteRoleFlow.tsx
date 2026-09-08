@@ -13,7 +13,7 @@ import type { Role, IngestJdResponseBody } from '../types';
  * is never a dead end.
  */
 export function PasteRoleFlow() {
-  const { pasteRoleOpen, closePasteRole, setSelectedRoleId } = useAppUI();
+  const { pasteRoleOpen, closePasteRole, setSelectedRoleId, runSync } = useAppUI();
   const { push } = useToast();
   const navigate = useNavigate();
 
@@ -40,6 +40,7 @@ export function PasteRoleFlow() {
         return;
       }
     } catch { /* network error / not shipped yet — fall through to the manual preview below */ }
+    finally { setLoading(false); }
     // Deterministic fallback: pull a title out of the first line so the flow never dead-ends.
     const firstLine = jdText.split('\n').map(l => l.trim()).find(Boolean) ?? 'Untitled role';
     setPreview({ title: firstLine.slice(0, 80), mustHaves: [], niceToHaves: [], dealbreakers: [] });
@@ -68,9 +69,11 @@ export function PasteRoleFlow() {
     };
     await dataService.put('roles', role);
     setSelectedRoleId(role.id);
-    push(`${role.title} added — sync the bench to score it.`, { tone: 'success' });
     close();
     navigate('/bench');
+    // The button says "Create role & sync the bench" — so it syncs. The bench fills wave by
+    // wave on the screen the user just landed on; runSync raises its own toast when it lands.
+    void runSync(role.id);
   };
 
   return (

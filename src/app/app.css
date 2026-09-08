@@ -187,3 +187,15 @@
 @media (max-width: 767px) {
   .smhq-page { padding: var(--space-4); }
 }
+
+/* ------------------------------------------------------------------- auth affordances */
+.smhq-topbar-signin { white-space: nowrap; }
+@media (max-width: 900px) { .smhq-topbar-signin { display: none; } }
+
+.smhq-auth-error {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
+  color: var(--danger); padding: 8px var(--space-5); font-size: 12.5px;
+}
+.smhq-auth-error button { background: none; border: none; color: inherit; cursor: pointer; }

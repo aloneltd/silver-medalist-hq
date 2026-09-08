@@ -175,21 +175,42 @@ const ACTION: Record<string, TodayQueueItem['action']> = {
   resurface: { label: 'Resurface', kind: 'resurface' },
 };
 
-function priorityRank(kind: string): number {
-  if (kind === 'resurface') return 0;
-  if (kind === 'recheck_comp') return 1;
-  return 2;
+/** A resurface lands in Today once the window is within three weeks — the heads-up beats the miss. */
+const RESURFACE_LOOKAHEAD_DAYS = 21;
+/** A top-fit suggestion has to actually be a fit before it earns a slot in a five-card queue. */
+const TOP_FIT_THRESHOLD = 70;
+
+function formatShortDate(iso: ISODate): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
 /**
- * Bench-wide "who needs attention today" — deliberately independent of any AI match score,
- * so Today is populated (and testable) with zero network calls. Excludes do_not_reapproach
- * and opted_out entirely; took_role only surfaces once its snooze date has passed.
+ * Bench-wide "who needs attention today". Four independent buckets, then a round-robin so the
+ * queue is *mixed* rather than five copies of whichever rule fires loudest: a resurface, a
+ * top fit for the role you have open, a follow-up that's overdue, and a comp figure that has
+ * aged out. Three of the four need no network at all; the fourth reads scores already stored.
+ *
+ * Excludes do_not_reapproach and opted_out entirely. took_role surfaces when its resurface
+ * window opens *or is about to* — never as a date we already missed.
  */
-async function computeTodayQueue(limit = 5): Promise<TodayQueueItem[]> {
+async function computeTodayQueue(limit = 5, roleId?: Id): Promise<TodayQueueItem[]> {
   const now = new Date();
+  const nowMs = now.getTime();
   const candidates = await list('candidates');
-  const items: TodayQueueItem[] = [];
+
+  const resurface: TodayQueueItem[] = [];
+  const followUp: TodayQueueItem[] = [];
+  const recheckComp: TodayQueueItem[] = [];
+  const topFit: TodayQueueItem[] = [];
+
+  const matches = roleId ? await getMatchesForRole(roleId) : [];
+  const matchByCandidate = new Map(matches.map(m => [m.candidateId, m]));
+  /** The selected role's fit for this person, so every card can carry the same ring. */
+  const fitOf = (candidateId: Id): Pick<TodayQueueItem, 'roleId' | 'fit'> => {
+    const m = matchByCandidate.get(candidateId);
+    return m ? { roleId, fit: m.override?.score ?? m.score } : {};
+  };
 
   for (const raw of candidates) {
     if (raw.status === 'do_not_reapproach' || raw.status === 'opted_out') continue;
@@ -197,24 +218,31 @@ async function computeTodayQueue(limit = 5): Promise<TodayQueueItem[]> {
     const warmthDays = computeWarmthDays(c.warmthAt, now);
 
     if (c.status === 'took_role') {
-      if (c.snoozeUntil && new Date(c.snoozeUntil) <= now) {
-        items.push({
-          candidate: c,
-          reason: `Took another role — resurface window is open${c.statusReason ? ` (${c.statusReason})` : ''}`,
-          action: ACTION.resurface,
-          warmthDays,
-        });
+      if (c.snoozeUntil) {
+        const daysUntil = Math.ceil((new Date(c.snoozeUntil).getTime() - nowMs) / 86_400_000);
+        if (daysUntil <= RESURFACE_LOOKAHEAD_DAYS) {
+          resurface.push({
+            candidate: c,
+            reason: daysUntil <= 0
+              ? `Took another role — the resurface window is open now`
+              : `Took another role — resurface window opens in ${daysUntil} day${daysUntil === 1 ? '' : 's'} (${formatShortDate(c.snoozeUntil)})`,
+            action: ACTION.resurface,
+            warmthDays,
+            ...fitOf(c.id),
+          });
+        }
       }
       continue;
     }
 
     if (c.status === 'silent') {
       if (warmthDays >= STALE_DAYS) {
-        items.push({
+        followUp.push({
           candidate: c,
           reason: `Went quiet ${warmthDays} days ago${c.statusReason ? ` — ${c.statusReason}` : ''}`,
           action: ACTION.follow_up,
           warmthDays,
+          ...fitOf(c.id),
         });
       }
       continue;
@@ -225,29 +253,63 @@ async function computeTodayQueue(limit = 5): Promise<TodayQueueItem[]> {
     const compAgeDays = c.compAtLastProcess ? daysBetween(c.compAtLastProcess.date, now) : null;
     if (compAgeDays !== null && compAgeDays >= RECHECK_COMP_DAYS) {
       const years = Math.round((compAgeDays / 365) * 10) / 10;
-      items.push({
+      recheckComp.push({
         candidate: c,
-        reason: `Comp on file is ${years} years old — worth a re-check before pitching`,
+        reason: `Comp on file is ${years} year${years === 1 ? '' : 's'} old — worth a re-check before pitching`,
         action: ACTION.recheck_comp,
         warmthDays,
+        ...fitOf(c.id),
       });
     } else if (warmthDays >= STALE_DAYS) {
       const neverTouched = c.warmthAt === c.createdAt;
-      items.push({
+      followUp.push({
         candidate: c,
         reason: neverTouched ? `On the bench ${warmthDays} days, never reached out` : `No touch in ${warmthDays} days`,
         action: neverTouched ? ACTION.reach_out : ACTION.follow_up,
         warmthDays,
+        ...fitOf(c.id),
       });
+    }
+
+    // Top fit for the role the recruiter has open — only people not already in a live
+    // pipeline stage, so Today never tells you to "reach out" to someone at offer.
+    const match = matchByCandidate.get(c.id);
+    if (match && match.stage === 'warm') {
+      const fit = match.override?.score ?? match.score;
+      if (fit >= TOP_FIT_THRESHOLD) {
+        topFit.push({
+          candidate: c,
+          reason: match.why,
+          action: ACTION.reach_out,
+          warmthDays,
+          roleId,
+          fit,
+        });
+      }
     }
   }
 
-  items.sort((a, b) => {
-    const rankDiff = priorityRank(a.action.kind) - priorityRank(b.action.kind);
-    return rankDiff !== 0 ? rankDiff : b.warmthDays - a.warmthDays;
-  });
+  resurface.sort((a, b) => new Date(a.candidate.snoozeUntil ?? 0).getTime() - new Date(b.candidate.snoozeUntil ?? 0).getTime());
+  followUp.sort((a, b) => b.warmthDays - a.warmthDays);
+  recheckComp.sort((a, b) => b.warmthDays - a.warmthDays);
+  topFit.sort((a, b) => (b.fit ?? 0) - (a.fit ?? 0));
 
-  return items.slice(0, limit);
+  // Round-robin the four buckets so the queue always reads as a mix of real reasons, in
+  // descending urgency: a window that closes, a number that has aged out, the best fit for
+  // the open role, then the overdue follow-ups.
+  const buckets = [resurface, recheckComp, topFit, followUp];
+  const out: TodayQueueItem[] = [];
+  const seen = new Set<string>();
+  for (let round = 0; out.length < limit && round < limit; round++) {
+    for (const bucket of buckets) {
+      const next = bucket[round];
+      if (!next || seen.has(next.candidate.id)) continue;
+      seen.add(next.candidate.id);
+      out.push(next);
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------- matches
@@ -263,14 +325,21 @@ function toScoreRoleInput(r: Role): ScoreRoleInput {
   };
 }
 
+/** Top 8 skills and a one-line prior reason — the wave payload is ~80 tokens per person. */
+const MAX_SKILLS_IN_PROMPT = 8;
+const MAX_PRIOR_REASON_CHARS = 110;
+
 async function toScoreCandidateInput(c: Candidate): Promise<ScoreCandidateInput> {
   const lastProcess = await db.processes.where('candidateId').equals(c.id).last();
+  const priorReason = lastProcess?.reason
+    ? lastProcess.reason.replace(/\s+/g, ' ').trim().slice(0, MAX_PRIOR_REASON_CHARS)
+    : undefined;
   return {
-    id: c.id, name: c.name, skills: c.skills, seniority: c.seniority,
+    id: c.id, name: c.name, skills: c.skills.slice(0, MAX_SKILLS_IN_PROMPT), seniority: c.seniority,
     currentTitle: c.currentTitle, currentEmployer: c.currentEmployer, tenureStart: c.tenureStart,
     compExpectation: c.compExpectation, compAtLastProcess: c.compAtLastProcess,
     location: c.location, status: c.status, snoozeUntil: c.snoozeUntil, warmthAt: c.warmthAt,
-    priorReason: lastProcess?.reason,
+    priorReason,
   };
 }
 
@@ -292,9 +361,12 @@ async function prepareScoreRequest(roleId: Id): Promise<PreparedScoreRequest> {
   if (!role) throw new Error(`Role ${roleId} not found`);
 
   const allCandidates = await list('candidates');
-  const active = allCandidates.filter(c => c.status === 'active');
+  // Everyone the recruiter is still allowed to consider. `opted_out` is a consent withdrawal
+  // and never reaches an AI prompt; the rest are scored so the whole bench is comparable,
+  // with the UI de-prioritising non-active people in ranking rather than hiding their fit.
+  const scorable = allCandidates.filter(c => c.status !== 'opted_out');
   const roleInput = toScoreRoleInput(role);
-  const candidateInputs = await Promise.all(active.map(toScoreCandidateInput));
+  const candidateInputs = await Promise.all(scorable.map(toScoreCandidateInput));
   const hash = scoreFingerprint(roleInput, candidateInputs);
 
   const existing = await getMatchesForRole(roleId);
@@ -459,13 +531,26 @@ async function init(): Promise<{ migrated: boolean; loadedSample: boolean }> {
   return { migrated: migration.migrated, loadedSample };
 }
 
+/**
+ * Seeds the pre-scored sample workspace. Matches, activities and sequences go in alongside
+ * the candidates so a first-time visitor lands on a workspace where the Bench, Map, Board,
+ * Today queue and the ROI counter are all already alive — never a wall of empty states with
+ * a "sync to see something" button. "Start my own bench" (wipe) clears every one of these.
+ */
 async function loadSampleBench(): Promise<void> {
-  const { roles, candidates, processes } = buildSampleBench();
-  await db.transaction('rw', db.roles, db.candidates, db.processes, async () => {
-    await db.roles.bulkPut(roles);
-    await db.candidates.bulkPut(candidates);
-    await db.processes.bulkPut(processes);
-  });
+  const { roles, candidates, processes, matches, activities, sequences } = buildSampleBench();
+  await db.transaction(
+    'rw',
+    [db.roles, db.candidates, db.processes, db.matches, db.activities, db.sequences],
+    async () => {
+      await db.roles.bulkPut(roles);
+      await db.candidates.bulkPut(candidates);
+      await db.processes.bulkPut(processes);
+      await db.matches.bulkPut(matches);
+      await db.activities.bulkPut(activities);
+      await db.sequences.bulkPut(sequences);
+    },
+  );
   await setSetting(SETTINGS_KEYS.sampleFlag, true);
 }
 
@@ -654,8 +739,8 @@ function useActivitiesForCandidate(candidateId: Id | undefined): Activity[] | un
 function useSequencesForCandidate(candidateId: Id | undefined): Sequence[] | undefined {
   return useLiveQuery(() => (candidateId ? db.sequences.where('candidateId').equals(candidateId).toArray() : []), [candidateId]);
 }
-function useTodayQueue(limit = 5): TodayQueueItem[] | undefined {
-  return useLiveQuery(() => computeTodayQueue(limit), [limit]);
+function useTodayQueue(limit = 5, roleId?: Id): TodayQueueItem[] | undefined {
+  return useLiveQuery(() => computeTodayQueue(limit, roleId), [limit, roleId]);
 }
 function useSetting<T>(key: string, fallback: T): T | undefined {
   return useLiveQuery(() => getSetting(key, fallback), [key]);

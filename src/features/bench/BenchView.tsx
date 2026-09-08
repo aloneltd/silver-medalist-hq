@@ -11,13 +11,13 @@ import { useBenchKeyboard } from './useBenchKeyboard';
 import { BenchRow } from './BenchRow';
 import { BulkActionsBar } from './BulkActionsBar';
 import { snoozeCandidate, bulkTag, bulkSnooze, bulkStatus } from './lib/actions';
-import { cx, STATUS_META, token } from './lib/tokens';
+import { STATUS_META } from './lib/tokens';
 import { daysSince } from './lib/warmth';
 import { candidatesToCsv, downloadCsv } from './lib/csv';
 
 type SortKey = 'fit' | 'warmth' | 'name' | 'status';
 
-const ROW_HEIGHT = 56;
+const ROW_HEIGHT = 64;
 const QUICK_SNOOZE_DAYS = 3;
 
 export interface BenchViewProps {
@@ -35,7 +35,9 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
   const { openCandidate: openCandidateLink } = useDossierLink();
   const openCandidate = onOpenCandidate ?? openCandidateLink;
 
-  const { role, candidates, matchesByCandidate, phase, error, usedFallback, flipActive, sync } = useSyncBench(roleId);
+  const {
+    role, candidates, matchesByCandidate, phase, error, fallbackCount, progress, flipActive, sync,
+  } = useSyncBench(roleId);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<Set<CandidateStatus>>(new Set());
@@ -58,6 +60,11 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
     });
   }, [candidates, statusFilter, search]);
 
+  const maxWarmthDays = useMemo(
+    () => filtered.reduce((mx, c) => Math.max(mx, daysSince(c.warmthAt)), 30),
+    [filtered],
+  );
+
   const sorted = useMemo(() => {
     const rows = [...filtered];
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -71,6 +78,11 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
           return (daysSince(a.warmthAt) - daysSince(b.warmthAt)) * dir;
         case 'fit':
         default: {
+          // Ranking de-prioritises everyone who isn't contactable, whatever their raw fit —
+          // an opted-out person must never sit above an active one on a sorted bench.
+          const rank = (c: Candidate) => (c.status === 'active' ? 0 : c.status === 'silent' ? 1 : 2);
+          const rankDiff = rank(a) - rank(b);
+          if (rankDiff !== 0) return rankDiff;
           const sa = matchesByCandidate[a.id];
           const sb = matchesByCandidate[b.id];
           const va = sa ? (sa.override?.score ?? sa.score) : -1;
@@ -139,10 +151,15 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
     else { setSortKey(key); setSortDir('desc'); }
   };
 
+  const syncing = phase === 'syncing';
+
   return (
     <LazyMotion features={domAnimation} strict>
-      <section aria-label="Bench" className={`flex h-full min-h-0 flex-col ${cx.ink}`}>
-        <header className="flex flex-wrap items-center gap-2 border-b px-3 py-2" style={{ borderColor: token.border }}>
+      <section aria-label="Bench" className="smhq-ink" style={{ display: 'flex', height: '100%', minHeight: 0, flexDirection: 'column' }}>
+        <header
+          className="smhq-border"
+          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--panel-border)', padding: '10px 14px' }}
+        >
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -151,7 +168,7 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
             className="w-56"
           />
 
-          <div className="flex items-center gap-1 text-xs">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
             {(['active', 'silent', 'took_role', 'do_not_reapproach', 'opted_out'] as CandidateStatus[]).map(s => (
               <Chip
                 key={s}
@@ -170,26 +187,37 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
             ))}
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* The wave counter IS the progress indicator — there is no global spinner. */}
+            {syncing && progress && progress.totalWaves > 0 && (
+              <span className="smhq-wave" role="status" aria-live="polite">
+                <span className="smhq-wave-track">
+                  <i style={{ width: `${Math.round((progress.wave / progress.totalWaves) * 100)}%` }} />
+                </span>
+                Wave {Math.max(1, progress.wave)} of {progress.totalWaves} · {progress.scored} scored
+              </span>
+            )}
             {role && (
               <>
-                {usedFallback && (
-                  <Chip as="span" tone="amber">Keyword fit (AI unavailable)</Chip>
+                {!syncing && fallbackCount > 0 && (
+                  <Chip as="span" tone="amber">
+                    {fallbackCount} keyword fit{fallbackCount === 1 ? '' : 's'}
+                  </Chip>
                 )}
-                <Button variant="primary" size="sm" onClick={sync} loading={phase === 'syncing'}>
-                  {phase === 'syncing' ? 'Syncing…' : `Sync the bench for ${role.title}`}
+                <Button variant="primary" size="sm" onClick={sync} disabled={syncing}>
+                  {syncing ? 'Scoring…' : `Sync the bench for ${role.title}`}
                 </Button>
               </>
             )}
-            {!roleId && <span className={`text-sm ${cx.muted}`}>Pick a role to score the bench.</span>}
-            <span className={`hidden items-center gap-1 text-xs md:flex ${cx.muted}`}>
+            {!roleId && <span className="smhq-muted" style={{ fontSize: 13 }}>Pick a role to score the bench.</span>}
+            <span className="smhq-muted smhq-bench-only-wide" style={{ fontSize: 11.5 }}>
               <Kbd keys={['j', 'k']} /> move <Kbd>enter</Kbd> open <Kbd>e</Kbd> compose <Kbd>s</Kbd> snooze
             </span>
           </div>
         </header>
 
         {error && (
-          <div role="alert" className={`border-b px-3 py-2 text-sm ${cx.border} ${cx.dangerText}`}>
+          <div role="alert" className="smhq-danger-text" style={{ borderBottom: '1px solid var(--panel-border)', padding: '8px 14px', fontSize: 13 }}>
             {error}
           </div>
         )}
@@ -209,21 +237,13 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
           }}
         />
 
-        <div
-          role="row"
-          className={[
-            'grid items-center gap-2 border-b px-3 py-1.5 text-xs sm:gap-3',
-            'grid-cols-[20px_minmax(0,1fr)_56px_auto]',
-            'sm:grid-cols-[24px_minmax(0,1.6fr)_140px_64px_84px_minmax(0,2fr)_auto]',
-            cx.border, cx.muted,
-          ].join(' ')}
-        >
+        <div role="row" className="smhq-bench-grid smhq-bench-head" style={{ padding: '7px 14px' }}>
           <span aria-hidden />
-          <button type="button" onClick={() => toggleSort('name')} className="text-left hover:underline">Name</button>
-          <button type="button" onClick={() => toggleSort('status')} className="hidden text-left hover:underline sm:block">Status</button>
-          <button type="button" onClick={() => toggleSort('warmth')} className="hidden text-right hover:underline sm:block">Days</button>
-          <button type="button" onClick={() => toggleSort('fit')} className="text-right hover:underline">Fit</button>
-          <span className="hidden sm:block">Why now</span>
+          <button type="button" onClick={() => toggleSort('name')} style={{ textAlign: 'left', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>Name</button>
+          <button type="button" onClick={() => toggleSort('status')} className="smhq-bench-only-wide" style={{ textAlign: 'left', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>Status</button>
+          <button type="button" onClick={() => toggleSort('warmth')} className="smhq-bench-only-wide" style={{ textAlign: 'right', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>Days</button>
+          <button type="button" onClick={() => toggleSort('fit')} style={{ textAlign: 'right', background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', justifySelf: 'end' }}>Fit</button>
+          <span className="smhq-bench-only-wide">Why now</span>
           <span aria-hidden />
         </div>
 
@@ -232,10 +252,12 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
           role="grid"
           aria-label={`Bench, ${sorted.length} candidates`}
           aria-rowcount={sorted.length}
-          className="min-h-0 flex-1 overflow-auto"
+          style={{ minHeight: 0, flex: 1, overflow: 'auto' }}
         >
           {sorted.length === 0 ? (
-            <div className={`p-8 text-center text-sm ${cx.muted}`}>No candidates match these filters.</div>
+            <div className="smhq-muted" style={{ padding: 32, textAlign: 'center', fontSize: 13 }}>
+              No candidates match these filters.
+            </div>
           ) : (
             <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
               {virtualizer.getVirtualItems().map(vRow => {
@@ -247,8 +269,9 @@ export function BenchView({ roleId: roleIdProp, onOpenCandidate, onCompose: onCo
                     match={matchesByCandidate[candidate.id]}
                     isSelected={selected.has(candidate.id)}
                     isActive={vRow.index === activeIndex}
-                    syncing={phase === 'syncing'}
+                    syncing={syncing}
                     flipActive={flipActive}
+                    maxWarmthDays={maxWarmthDays}
                     style={{ transform: `translateY(${vRow.start}px)`, height: ROW_HEIGHT }}
                     onToggleSelect={(id, additive) => { setActiveIndex(vRow.index); toggleSelect(id, additive); }}
                     onOpen={openCandidate}

@@ -40,9 +40,10 @@ function candidate(id: string, overrides: Record<string, unknown> = {}) {
   };
 }
 
-function groqResponse(scored: unknown[]): Response {
+/** The wave protocol: the model answers by wave-local index with single-letter keys. */
+function groqResponse(rows: unknown[]): Response {
   return new Response(JSON.stringify({
-    choices: [{ message: { content: JSON.stringify({ scored }) } }],
+    choices: [{ message: { content: JSON.stringify({ r: rows }) } }],
   }), { status: 200 });
 }
 
@@ -55,8 +56,8 @@ describe('/api/score contract', () => {
 
   it('drops malformed rows and backfills them from the deterministic fallback', async () => {
     global.fetch = vi.fn(async () => groqResponse([
-      { candidateId: 'c1', score: 80, sub: { skills: 80, seniority: 80, comp: 80, timing: 80 }, why: 'Good fit', flags: [] },
-      { candidateId: 'c2', score: 'not-a-number', sub: {}, why: '' }, // malformed — must be dropped
+      { i: 0, s: 80, k: 80, l: 80, c: 80, t: 80, w: 'Good fit', f: [] },
+      { i: 1, s: 'not-a-number', w: '' }, // malformed — must be dropped
     ])) as unknown as typeof fetch;
 
     const { req, res, json } = fakeReqRes({ role: ROLE, candidates: [candidate('c1'), candidate('c2')] }, '1.1.1.1');
@@ -97,7 +98,7 @@ describe('/api/score contract', () => {
     global.fetch = vi.fn(async () => {
       calls++;
       return groqResponse([
-        { candidateId: 'c4', score: 70, sub: { skills: 70, seniority: 70, comp: 70, timing: 70 }, why: 'ok', flags: [] },
+        { i: 0, s: 70, k: 70, l: 70, c: 70, t: 70, w: 'ok', f: [] },
       ]);
     }) as unknown as typeof fetch;
 
@@ -120,17 +121,27 @@ describe('/api/score contract', () => {
     expect(status()).toBe(400);
   });
 
-  it('drops non-active candidates server-side even if the caller forgot to filter', async () => {
+  it('scores non-active candidates but never sends an opted-out person to the model', async () => {
     global.fetch = vi.fn(async () => groqResponse([
-      { candidateId: 'c6', score: 60, sub: { skills: 60, seniority: 60, comp: 60, timing: 60 }, why: 'ok', flags: [] },
+      { i: 0, s: 60, k: 60, l: 60, c: 60, t: 60, w: 'ok', f: [] },
+      { i: 1, s: 55, k: 55, l: 55, c: 55, t: 55, w: 'went quiet', f: [] },
     ])) as unknown as typeof fetch;
 
     const { req, res, json } = fakeReqRes({
       role: ROLE,
-      candidates: [candidate('c6', { status: 'active' }), candidate('c7', { status: 'silent' })],
+      candidates: [
+        candidate('c6', { status: 'active' }),
+        candidate('c7', { status: 'silent' }),
+        candidate('c8', { status: 'opted_out' }),
+      ],
     }, '6.6.6.6');
     await handler(req, res);
     const body = json();
-    expect(body.scored.map((r: any) => r.candidateId)).toEqual(['c6']);
+    // silent stays (visible, comparable, de-prioritised in the UI's ranking);
+    // opted_out is a consent withdrawal and never reaches a prompt or a row.
+    expect(body.scored.map((r: any) => r.candidateId).sort()).toEqual(['c6', 'c7']);
+    const mockFetch = global.fetch as unknown as { mock: { calls: [string, { body: string }][] } };
+    const sentPrompt = mockFetch.mock.calls[0][1].body;
+    expect(sentPrompt).not.toContain('Cand c8');
   });
 });
