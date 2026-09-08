@@ -57,12 +57,25 @@ ${RESPONSE_SCHEMA}`
 
   // reasoning_effort is fixed to 'low' inside fastai's groqBody() — every Groq call already
   // gets that, no option to pass here.
+  //
+  // timeoutMs is deliberately short (fastai's default is 20s, shared across the WHOLE
+  // Groq+Gemini provider ladder in one AbortController, not per-provider). BLUEPRINT-v2.md's
+  // Definition of Done wants a role synced in under 4s; on Mark's actual Groq tier a role with
+  // more than ~25-30 active candidates structurally exceeds the account's 8,000 TPM cap for
+  // gpt-oss-120b/20b (measured: a 40-candidate call needs ~8,800 tokens), so the AI branch is
+  // *going* to fail for a typical full-bench sync — the only question is how long the UI waits
+  // to find that out. A live provider that's genuinely just slow (not rate-limited) rarely
+  // needs anywhere near 20s to answer; a live provider that's rate-limited answers in well
+  // under a second. Capping at 4s means a real, in-budget score still completes comfortably,
+  // while a doomed one hands off to the deterministic keyword-fit fallback fast instead of
+  // making the recruiter stare at a spinner for 20-40s across the two runScorePass attempts.
   const result = await complete({
     messages: [{ role: 'user', text: prompt }],
     system,
     json: true,
     temperature: attempt ? 0.6 : 0.3,
     maxTokens: 4096,
+    timeoutMs: 4000,
   })
 
   const parsed = parseJson<{ scored?: unknown[] }>(result.text)
