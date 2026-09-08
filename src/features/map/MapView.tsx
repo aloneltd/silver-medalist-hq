@@ -239,8 +239,8 @@ export function MapView({ roleId: roleIdProp }: MapViewProps = {}) {
             </button>
           ))}
           <span className="smhq-target-legend-sep" />
-          <span className="smhq-target-legend-tick">12 · this week</span>
-          <span className="smhq-target-legend-tick">6 · 6 months</span>
+          <span className="smhq-target-legend-tick">Top of the clock: spoke this week</span>
+          <span className="smhq-target-legend-tick">Bottom: six months ago</span>
         </div>
       )}
 
