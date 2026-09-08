@@ -1,5 +1,5 @@
-import type { ScoreCandidateInput, ScoreRoleInput } from '../types';
-import { contentHash } from './hash';
+import type { ScoreCandidateInput, ScoreRoleInput } from '../types/index.js';
+import { contentHash } from './hash.js';
 
 /**
  * hash(role fingerprint + sorted candidate fingerprints) — BLUEPRINT-v2.md's cache key for
