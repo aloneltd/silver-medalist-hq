@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/|@|src/|assets/|node_modules/|favicon\\.svg|icons\\.svg).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

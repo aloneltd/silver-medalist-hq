@@ -435,12 +435,24 @@ async function commitCandidateImport(items: ImportPreviewItem[]): Promise<{ crea
 
 // -------------------------------------------------------------------------------- bootstrap
 
-/** Runs the one-time v1 migration, then seeds the sample bench if the DB is still empty. */
+/**
+ * Runs the one-time v1 migration, then seeds the sample bench on the very first boot only.
+ *
+ * `candidateCount === 0` alone isn't enough to gate this: "Start my own bench" (wipe) also
+ * leaves the DB empty on purpose, and every full page load/reload re-runs `init()` (this isn't
+ * a client-router navigation — a hard reload re-mounts the whole app). Without a persisted
+ * "have we ever initialized" marker, a wiped workspace would silently resurrect the sample
+ * bench the moment the user reloaded or revisited — the exact opposite of what "Start my own
+ * bench" promises. `sampleFlag`'s *row* (not just its value) is that marker: loadSampleBench()
+ * sets it true, wipe() sets it false — either way the row now exists, so only a genuinely
+ * fresh install (no row at all) seeds automatically.
+ */
 async function init(): Promise<{ migrated: boolean; loadedSample: boolean }> {
   const migration = await migrateLegacyLocalStorage(db);
   const candidateCount = await db.candidates.count();
+  const sampleFlagRow = await db.settings.get(SETTINGS_KEYS.sampleFlag);
   let loadedSample = false;
-  if (candidateCount === 0) {
+  if (candidateCount === 0 && sampleFlagRow === undefined) {
     await loadSampleBench();
     loadedSample = true;
   }
