@@ -130,11 +130,18 @@ async function postJSON<TRes>(url: string, body: unknown, timeoutMs?: number): P
   return res.json() as Promise<TRes>;
 }
 
-/** One wave, with a single retry — a blip on one wave must not downgrade the whole sync. */
+/**
+ * One wave, with a single retry — a blip on one wave must not downgrade the whole sync.
+ * The retry waits first: the realistic reason a wave fails is a rate limit, and an instant
+ * retry is guaranteed to hit the same one.
+ */
+const RETRY_BACKOFF_MS = 1500;
+
 async function fetchWave(role: ScoreRoleInput, wave: ScoreCandidateInput[]): Promise<ScoreApiResponse | null> {
   try {
     return await postJSON<ScoreApiResponse>('/api/score', { role, candidates: wave }, WAVE_TIMEOUT_MS);
-  } catch { /* fall through to exactly one retry */ }
+  } catch { /* fall through to exactly one retry, after a pause */ }
+  await sleep(RETRY_BACKOFF_MS);
   try {
     return await postJSON<ScoreApiResponse>('/api/score', { role, candidates: wave }, WAVE_TIMEOUT_MS);
   } catch {

@@ -22,7 +22,7 @@ const MAX_CANDIDATES_PER_CALL = 60
  * A 12-candidate wave costs ≈1.2k tokens round trip, so five waves — the whole bench — fit
  * inside one minute's budget with room to spare.
  */
-const RESPONSE_SHAPE = `{"r":[{"i":<index>,"s":<0-100 overall>,"k":<skills>,"l":<seniority>,"c":<comp>,"t":<timing>,"w":"<one short grounded sentence, max 22 words>","f":["<flag>"]}]}`
+const RESPONSE_SHAPE = `{"r":[{"i":<index>,"s":<0-100 overall>,"k":<skills>,"l":<seniority>,"c":<comp>,"t":<timing>,"w":"<one short grounded sentence, max 18 words>","f":["<flag>"]}]}`
 
 function isFiniteNum(n: unknown): n is number {
   return typeof n === 'number' && Number.isFinite(n)
@@ -113,7 +113,12 @@ ${RESPONSE_SHAPE}`
     system,
     json: true,
     temperature: attempt ? 0.5 : 0.25,
-    maxTokens: 2048,
+    // Sized to what a wave actually needs (~650 tokens: 12 rows of ~50 plus a little
+    // reasoning), NOT left at a generous default. Groq reserves prompt + max_tokens against
+    // the 8,000/min budget at request time, so a 2048 ceiling was quietly booking ~3k per
+    // wave — 15k for a five-wave sync — and rate-limiting the back half of the recruiter's
+    // own bench. At 800 a whole sync reserves ~7.9k and fits inside one minute's budget.
+    maxTokens: 800,
     // A 12-row wave is small; 8s comfortably covers a genuinely slow-but-alive provider while
     // a rate-limited one still fails fast (Groq answers a 429 in well under a second).
     timeoutMs: 8000,
