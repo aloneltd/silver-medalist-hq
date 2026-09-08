@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Textarea, useToast } from '../../ui';
+import { Button, Textarea } from '../../ui';
 import { dataService } from '../../services/dataService';
+import { warmScorer } from '../../services/aiService';
 import { ulid } from '../../lib/ulid';
 import { useAppUI } from '../../app/store';
 import type { Role, IngestJdResponseBody } from '../../types';
@@ -12,8 +13,9 @@ export function PasteJdInline() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const { setSelectedRoleId, runSync } = useAppUI();
-  const { push } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => { warmScorer(); }, []);
 
   const submit = async () => {
     if (!text.trim()) return;

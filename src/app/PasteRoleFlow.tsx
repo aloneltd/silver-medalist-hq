@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, Button, Textarea, Input, useToast } from '../ui';
 import { dataService } from '../services/dataService';
+import { warmScorer } from '../services/aiService';
 import { ulid } from '../lib/ulid';
 import { useAppUI } from './store';
 import type { Role, IngestJdResponseBody } from '../types';
@@ -21,6 +22,10 @@ export function PasteRoleFlow() {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<IngestJdResponseBody | null>(null);
   const [usedFallback, setUsedFallback] = useState(false);
+
+  // Boot the scoring function while the recruiter is still pasting, so wave 1 of the sync
+  // doesn't pay a cold start.
+  useEffect(() => { if (pasteRoleOpen) warmScorer(); }, [pasteRoleOpen]);
 
   const reset = () => { setJdText(''); setPreview(null); setUsedFallback(false); };
   const close = () => { closePasteRole(); reset(); };

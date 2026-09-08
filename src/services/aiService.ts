@@ -142,8 +142,34 @@ async function fetchWave(role: ScoreRoleInput, wave: ScoreCandidateInput[]): Pro
   }
 }
 
+/**
+ * A serverless function that hasn't been called in a few minutes pays a cold start, and on a
+ * wave-based sync that cold start lands entirely on wave 1 — measured at ~3s of the ~14s a
+ * cold production sync took. So the moment the recruiter opens the paste dialog, we send the
+ * scorer a zero-candidate request: the handler returns immediately without touching an AI
+ * provider (see the `candidates.length === 0` branch in api/score.ts), but the lambda is up
+ * and warm by the time they finish reading the parsed role. Fire-and-forget, never blocking,
+ * never surfaced.
+ */
+let lastWarmAt = 0;
+const WARM_TTL_MS = 3 * 60_000;
+
+export function warmScorer(): void {
+  if (Date.now() - lastWarmAt < WARM_TTL_MS) return;
+  lastWarmAt = Date.now();
+  void fetch('/api/score', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      role: { id: 'warm', title: '', level: '', location: '', compBand: { min: 0, max: 0, currency: 'USD' }, mustHaves: [], niceToHaves: [], dealbreakers: [] },
+      candidates: [],
+    }),
+  }).catch(() => { /* warming is best-effort; a failure changes nothing */ });
+}
+
 export const aiService = {
   WAVE_SIZE,
+  warmScorer,
 
   /**
    * Scores a whole bench in waves of 12, sequentially, reporting each wave as it lands.
