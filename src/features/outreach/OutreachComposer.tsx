@@ -252,11 +252,15 @@ export function OutreachComposer({ candidateId, roleId, onClose }: OutreachCompo
           </Button>
           <Button variant="secondary" onClick={copy} disabled={!draft}>Copy</Button>
           <Button variant="secondary" onClick={openInMail} disabled={!draft}>Open in mail app</Button>
-          {outlookConnected && (
-            <Button variant="secondary" onClick={createOutlookDraft} loading={outlookBusy === 'draft'} disabled={!draft || !candidate?.email}>
-              Create draft in Outlook
-            </Button>
-          )}
+          <Button
+            variant="secondary"
+            onClick={createOutlookDraft}
+            loading={outlookBusy === 'draft'}
+            disabled={!outlookConnected || !draft || !candidate?.email}
+            title={outlookConnected ? undefined : 'Connect Outlook in Settings → Connections to enable this'}
+          >
+            Create draft in Outlook
+          </Button>
           {outlookConnected && allowSend && (
             <Button variant="secondary" onClick={() => setSendConfirmOpen(true)} loading={outlookBusy === 'send'} disabled={!draft || !candidate?.email}>
               Send from Outlook
@@ -266,6 +270,14 @@ export function OutreachComposer({ candidateId, roleId, onClose }: OutreachCompo
             {alreadySent ? 'Marked sent ✓' : 'Mark sent'}
           </Button>
         </div>
+
+        {!outlookConnected && (
+          <p className={`text-xs ${cx.muted}`}>
+            Outlook isn't connected on this deployment yet — Create draft in Outlook stays off until
+            you register the app and set VITE_MS_CLIENT_ID (Settings → Connections has the exact steps).
+            Copy and Open in mail app still work.
+          </p>
+        )}
 
         {alreadySent && (
           <p className={`text-xs ${cx.muted}`}>
