@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Candidate, Match, BoardStage } from '../../types';
-import { Avatar, Chip, FitRing } from '../../ui';
+import { Avatar, Button, Chip, FitRing } from '../../ui';
 import { daysSince, STALE_DAYS, BOARD_STAGES } from './stageMeta';
 
 /** Stages where a card is actually in motion — the only ones where "stale" means anything. */
@@ -70,6 +70,20 @@ export function BoardCard({ candidate, match, roleTitle, onOpen, onMove, pulseSt
           ))}
         </select>
       </label>
+      {match.stage === 'reached_out' && (
+        // Manual fallback for when Outlook isn't connected or replyWatcher hasn't caught up
+        // yet — DESIGN-v2.1.md §A/§C.5. Routes through the same onMove -> requestMove path as
+        // drag/the dropdown, so it asks the same "what did they say?" reason and logs the same way.
+        <Button
+          size="sm"
+          variant="ghost"
+          style={{ marginTop: 2, width: '100%' }}
+          onClick={() => onMove(candidate.id, 'replied')}
+          aria-label={`Mark ${candidate.name} replied${roleTitle ? ` for ${roleTitle}` : ''}`}
+        >
+          Mark replied
+        </Button>
+      )}
     </li>
   );
 }

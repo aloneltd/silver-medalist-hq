@@ -5,6 +5,7 @@ import { useDossierLink } from '../../app/useDossierLink';
 import { SETTINGS_KEYS } from '../../types';
 import { computeDailyBriefFacts, type BriefFact } from './dailyBriefFacts';
 import { snoozeCandidate } from '../bench/lib/actions';
+import { replyWatcher } from '../../services/replyWatcher';
 import { Button } from '../../ui';
 import './dailyBrief.css';
 
@@ -39,6 +40,11 @@ export function DailyBrief() {
   const { selectedRoleId, setSelectedRoleId, openComposer } = useAppUI();
   const { openCandidate } = useDossierLink();
   const cachedSetting = dataService.hooks.useSetting<BriefCache | null>(SETTINGS_KEYS.briefCache, null);
+
+  // Starts replyWatcher's 15-min Graph poll the first time Today is visited this session —
+  // DESIGN-v2.1.md §A ("every 15 minutes while the app is open"). No-op when Outlook isn't
+  // connected (checked inside runOnce) and idempotent if already running.
+  useEffect(() => { replyWatcher.start(); }, []);
 
   const [facts, setFacts] = useState<BriefFact[] | null>(null);
   const [lines, setLines] = useState<string[]>([]);
