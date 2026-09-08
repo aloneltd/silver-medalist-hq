@@ -38,7 +38,14 @@ export function DriftControls({
           onInput={e => onScrub(Number((e.target as HTMLInputElement).value))}
           onPointerUp={() => { setDragging(false); onRelease(); }}
           onBlur={() => { if (dragging) { setDragging(false); onRelease(); } }}
-          onKeyUp={() => { if (monthsAgo !== 0) onRelease(); }}
+          onKeyDown={() => setDragging(true)}
+          onKeyUp={e => {
+            // A keyboard nudge (arrow keys, Home/End, etc.) scrubs the same as a drag —
+            // release only on the keys that mean "done": Enter commits, Escape/Tab move on.
+            // Releasing on every keyup (the previous behaviour) snapped straight back to 0 on
+            // the very first arrow press, making the slider un-scrubbable from the keyboard.
+            if (e.key === 'Enter' || e.key === 'Escape') { setDragging(false); onRelease(); }
+          }}
           aria-label="Scrub the Target back in time, 0 to 12 months"
           aria-valuetext={monthsAgo === 0 ? 'Today' : `${monthsAgo} months ago`}
         />
