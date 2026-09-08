@@ -1,238 +1,94 @@
-import type { MatchingInput, MatchResponse, Job } from '../types';
-import { SYSTEM_INSTRUCTION } from '../constants';
-
-interface CallOpts {
-  systemInstruction?: string;
-  temperature?: number;
-  json?: boolean;
-  maxTokens?: number;
-}
-
-const NETWORK_ERROR_MESSAGE = "Can't reach the AI service right now — check your connection and try again.";
+import type {
+  ScoreCandidateInput, ScoreRoleInput, ScoredRow, OutreachRequestBody,
+  IngestJdResponseBody, ParseResumeResponseBody,
+} from '../types';
 
 /**
- * A failed `fetch()` call throws a raw browser TypeError ("Failed to fetch", "NetworkError
- * when attempting to fetch resource", etc.) that means nothing to a recruiter and must never
- * reach the UI verbatim. Route every /api/ai call through this so a dropped connection, a
- * blocked request, or a DNS failure always surfaces the same friendly copy.
+ * The only place src/features/** talks to the network. Every call is grounded in
+ * BLUEPRINT-v2.md's four endpoints — /api/score, /api/outreach, /api/ingest-jd,
+ * /api/parse-resume. Score/comp/warmth *data* decisions live in dataService; this file
+ * only shapes requests and parses responses.
  */
-async function fetchAI(body: Record<string, unknown>): Promise<Response> {
+
+const NETWORK_ERROR_MESSAGE = "Can't reach the AI service right now — check your connection and try again.";
+const SCORE_CHUNK_SIZE = 60;
+
+interface ScoreApiResponse {
+  roleId: string;
+  scored: ScoredRow[];
+  fallback: boolean;
+  hash: string;
+}
+
+async function postJSON<TRes>(url: string, body: unknown): Promise<TRes> {
+  let res: Response;
   try {
-    return await fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   } catch {
     throw new Error(NETWORK_ERROR_MESSAGE);
   }
-}
-
-async function callAI(
-  messages: Array<{ role: string; text: string }>,
-  { systemInstruction, temperature = 0.7, json = false, maxTokens = 8192 }: CallOpts = {}
-): Promise<string> {
-  const res = await fetchAI({ messages, systemInstruction, temperature, maxTokens, json });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+    const err = await res.json().catch(() => ({ error: `API error ${res.status}` }));
     throw new Error(err.error || `API error ${res.status}`);
   }
-  const data = await res.json();
-  return data.text || '';
+  return res.json() as Promise<TRes>;
 }
 
-/** Streaming variant — calls onDelta as the answer is written. */
-async function streamAI(
-  messages: Array<{ role: string; text: string }>,
-  onDelta: (chunk: string) => void,
-  { systemInstruction, temperature = 0.7, maxTokens = 2048 }: CallOpts = {}
-): Promise<string> {
-  const res = await fetchAI({ messages, systemInstruction, temperature, maxTokens, stream: true });
-  if (!res.ok || !res.body) throw new Error('The AI service is unavailable right now — please try again.');
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let full = '';
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      if (chunk) { full += chunk; onDelta(chunk); }
-    }
-  } catch {
-    if (!full) throw new Error(NETWORK_ERROR_MESSAGE);
-    // Partial answer already streamed to the caller — let them keep what arrived.
-  }
-  return full;
-}
+export const aiService = {
+  /**
+   * One call per role, chunked to ≤60 candidates per request (server rejects more).
+   * `fallback` is true only if every chunk fell back to the deterministic keyword-fit scorer.
+   */
+  async scoreRole(role: ScoreRoleInput, candidates: ScoreCandidateInput[]): Promise<{ scored: ScoredRow[]; fallback: boolean }> {
+    if (candidates.length === 0) return { scored: [], fallback: false };
 
-/**
- * Models sometimes wrap JSON in prose or a code fence. Pull the first balanced
- * object out rather than trusting a naive greedy regex.
- */
-function extractJson<T>(text: string, what: string): T {
-  const cleaned = text.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '').trim();
-  try { return JSON.parse(cleaned) as T; } catch { /* keep digging */ }
+    const chunks: ScoreCandidateInput[][] = [];
+    for (let i = 0; i < candidates.length; i += SCORE_CHUNK_SIZE) chunks.push(candidates.slice(i, i + SCORE_CHUNK_SIZE));
 
-  const start = cleaned.indexOf('{');
-  if (start === -1) throw new Error(`Could not read ${what} from the AI response`);
-  let depth = 0, inStr = false, esc = false;
-  for (let i = start; i < cleaned.length; i++) {
-    const ch = cleaned[i];
-    if (esc) { esc = false; continue; }
-    if (ch === '\\') { esc = true; continue; }
-    if (ch === '"') { inStr = !inStr; continue; }
-    if (inStr) continue;
-    if (ch === '{') depth++;
-    else if (ch === '}') {
-      depth--;
-      if (depth === 0) {
-        try { return JSON.parse(cleaned.slice(start, i + 1)) as T; }
-        catch { throw new Error(`The AI returned malformed JSON for ${what}`); }
-      }
-    }
-  }
-  throw new Error(`The AI returned malformed JSON for ${what}`);
-}
+    const results = await Promise.all(
+      chunks.map(chunk => postJSON<ScoreApiResponse>('/api/score', { role, candidates: chunk })),
+    );
 
-const MATCH_SCHEMA = `{
-  "summary": {
-    "matches_above_threshold": number,
-    "medalist_redeployment_count": number,
-    "security_audit_id": "string",
-    "estimated_savings_usd": number
-  },
-  "matches": [{
-    "job_id": "string",
-    "candidate_id": "string",
-    "match_score": number,
-    "redeployment_strategy": "string",
-    "next_actions": [{
-      "type": "email_draft" | "slack_dm" | "ats_update",
-      "label": "string",
-      "context": "string",
-      "ai_pitch": "string"
-    }],
-    "risk_heatmap": { "tech": number, "culture": number, "comp": number, "timing": number }
-  }],
-  "broadcast": {
-    "hot_jobs": [{ "id": "string", "reason": "string" }],
-    "hot_candidates": [{ "id": "string", "reason": "string" }]
-  }
-}`;
-
-/** One round trip can only hold so many roles — beyond this we fan out and merge. */
-const JOBS_PER_BATCH = 4;
-
-export class AIService {
-  async parseJobDescription(input: { text?: string }): Promise<Partial<Job>> {
-    const prompt = `Extract a structured job requirement from this job description text.
-Focus on: title, level, location, remote_policy (remote/hybrid/onsite/unknown), comp_range (min/max/currency as numbers), must_haves (array), dealbreakers (array), urgency (score_1_to_5 and reasons array).
-
-Return ONLY valid JSON with this exact structure:
-{
-  "title": "string",
-  "level": "string",
-  "location": "string",
-  "remote_policy": "remote" | "hybrid" | "onsite" | "unknown",
-  "comp_range": { "min": number, "max": number, "currency": "USD" },
-  "must_haves": ["string"],
-  "dealbreakers": ["string"],
-  "urgency": { "score_1_to_5": number, "reasons": ["string"] }
-}
-
-Job Description:
-${input.text}`;
-
-    const text = await callAI([{ role: 'user', text: prompt }], { temperature: 0.2, json: true, maxTokens: 1500 });
-    return extractJson<Partial<Job>>(text, 'the job description');
-  }
-
-  private async runMatchBatch(data: MatchingInput, jobs: MatchingInput['jobs'], attempt = 0): Promise<MatchResponse> {
-    const systemInst = `${SYSTEM_INSTRUCTION}\n\nReturn ONLY valid JSON matching this exact schema:\n${MATCH_SCHEMA}`;
-
-    const prompt = `Run silver-medalist matching on this data. Match threshold: ${data.config.match_threshold}. Today: ${data.config.today}. Org size: ${data.config.org_size}.
-
-JOBS:
-${JSON.stringify(jobs, null, 2)}
-
-CANDIDATES:
-${JSON.stringify(data.candidates, null, 2)}
-
-Active Bridge: ${data.activeBridge}
-
-Score EVERY candidate against EVERY job. Return each pair that scores at or above the
-threshold. If no pair clears the threshold, still return the ${Math.min(3, (data.jobs?.length ?? 1) * (data.candidates?.length ?? 1))} strongest pairs with their
-honest scores — a recruiter needs to see the ranking, never an empty board.
-"matches_above_threshold" counts only the pairs that actually cleared it.
-
-Return ONLY valid JSON. No markdown, no explanation.${attempt ? `\n\nRun ${attempt + 1}: the previous pass returned nothing. Be decisive and rank the pairs.` : ''}`;
-
-    // The retry line also changes the prompt hash, so the server-side response cache
-    // cannot hand back the same empty answer.
-    const text = await callAI([{ role: 'user', text: prompt }], {
-      systemInstruction: systemInst, temperature: attempt ? 0.6 : 0.4, json: true, maxTokens: 8192,
-    });
-    return extractJson<MatchResponse>(text, 'the match results');
-  }
-
-  async runMatch(data: MatchingInput): Promise<MatchResponse> {
-    const jobs = data.jobs ?? [];
-    if (jobs.length <= JOBS_PER_BATCH) {
-      const first = await this.runMatchBatch(data, jobs);
-      // An empty board is never a useful answer for a small vault — one cheap retry
-      // (about a second) turns a dead screen into a ranking.
-      if (first.matches?.length) return first;
-      const retry = await this.runMatchBatch(data, jobs, 1).catch(() => null);
-      return retry?.matches?.length ? retry : first;
-    }
-
-    // Fan out over job batches in parallel, then merge — one giant prompt for a
-    // large vault truncates and times out.
-    const batches: MatchingInput['jobs'][] = [];
-    for (let i = 0; i < jobs.length; i += JOBS_PER_BATCH) batches.push(jobs.slice(i, i + JOBS_PER_BATCH));
-    const results = await Promise.all(batches.map(b => this.runMatchBatch(data, b).catch(() => null)));
-    const ok = results.filter(Boolean) as MatchResponse[];
-    if (!ok.length) throw new Error('The AI returned no match results — please try again.');
-
-    const merged: MatchResponse = {
-      summary: {
-        matches_above_threshold: 0,
-        medalist_redeployment_count: 0,
-        security_audit_id: ok[0].summary.security_audit_id,
-        estimated_savings_usd: 0,
-      },
-      matches: [],
-      broadcast: { hot_jobs: [], hot_candidates: [] },
+    return {
+      scored: results.flatMap(r => r.scored),
+      fallback: results.every(r => r.fallback),
     };
-    for (const r of ok) {
-      merged.matches.push(...(r.matches ?? []));
-      merged.summary.medalist_redeployment_count += r.summary?.medalist_redeployment_count ?? 0;
-      merged.summary.estimated_savings_usd += r.summary?.estimated_savings_usd ?? 0;
-      merged.broadcast.hot_jobs.push(...(r.broadcast?.hot_jobs ?? []));
-      merged.broadcast.hot_candidates.push(...(r.broadcast?.hot_candidates ?? []));
+  },
+
+  /** Streams the outreach draft. Calls onDelta as tokens arrive; always returns the full text. */
+  async draftOutreach(body: OutreachRequestBody, onDelta?: (chunk: string) => void): Promise<string> {
+    let res: Response;
+    try {
+      res = await fetch('/api/outreach', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+    } catch {
+      throw new Error(NETWORK_ERROR_MESSAGE);
     }
-    merged.summary.matches_above_threshold = merged.matches.length;
-    // A candidate can surface in several batches — keep the strongest mention only.
-    const seen = new Set<string>();
-    merged.broadcast.hot_candidates = merged.broadcast.hot_candidates.filter(c => !seen.has(c.id) && seen.add(c.id));
-    return merged;
-  }
+    if (!res.ok || !res.body) throw new Error('The AI service is unavailable right now — please try again.');
 
-  async draftOutreachEmail(
-    candidateName: string,
-    jobTitle: string,
-    strategy: string,
-    onDelta?: (chunk: string) => void
-  ): Promise<string> {
-    const prompt = `Draft a concise, professional outreach email to ${candidateName} about a ${jobTitle} opportunity.
-Context: ${strategy}
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let full = '';
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) { full += chunk; onDelta?.(chunk); }
+      }
+    } catch {
+      if (!full) throw new Error(NETWORK_ERROR_MESSAGE);
+      // Partial draft already streamed to the caller — let them keep what arrived.
+    }
+    return full;
+  },
 
-Write a warm, personalized email (3-4 short paragraphs). Start with "Subject:" line, then the email body.
-Tone: professional but human. Acknowledge they are a valued candidate. Don't be pushy.`;
+  async ingestJobDescription(text: string): Promise<IngestJdResponseBody> {
+    return postJSON('/api/ingest-jd', { text });
+  },
 
-    const messages = [{ role: 'user', text: prompt }];
-    if (onDelta) return streamAI(messages, onDelta, { temperature: 0.8, maxTokens: 900 });
-    return callAI(messages, { temperature: 0.8, maxTokens: 900 });
-  }
-}
+  async parseResume(base64: string, mimeType = 'application/pdf', filename = 'resume'): Promise<ParseResumeResponseBody> {
+    return postJSON('/api/parse-resume', { base64, mimeType, filename });
+  },
+};

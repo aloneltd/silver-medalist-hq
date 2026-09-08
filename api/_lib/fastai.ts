@@ -43,19 +43,17 @@ export class AiError extends Error {
 
 /* ------------------------------------------------------------------ cache */
 
+import { contentHash } from '../../src/lib/hash.js'
+
 const CACHE_MAX = 250
-const CACHE_TTL = 10 * 60_000
+// 60 min — silver-medalist-hq's /api/score, /api/outreach and /api/ingest-jd re-score the
+// same role+candidate set repeatedly within a session; a longer TTL turns those into free,
+// instant hits. (Was 10 min; bumped per BLUEPRINT-v2.md's "server LRU ... 60 min TTL".)
+const CACHE_TTL = 60 * 60_000
 const cache = new Map<string, { text: string; model: string; exp: number }>()
 
-function hash(s: string): string {
-  let h1 = 0x811c9dc5, h2 = 0x01000193
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i)
-    h1 = Math.imul(h1 ^ c, 16777619)
-    h2 = Math.imul(h2 + c, 2654435761)
-  }
-  return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36)
-}
+/** Re-exported so every api/* handler shares one hash implementation with the client. */
+export const hash = contentHash
 
 export function cacheKey(opts: AiOptions): string {
   return hash(JSON.stringify([

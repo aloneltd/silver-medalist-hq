@@ -1,18 +1,42 @@
-import type { Job, Candidate, MatchResponse } from '../types';
+import type { Candidate, Role, Process, Match, Activity, Sequence } from '../types';
 
 const FOLDER_NAME = 'Silver Medalist HQ';
+const SNAPSHOT_FILENAME = 'snapshot.json';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
 
+export interface DriveSnapshot {
+  v: 2;
+  updatedAt: string;
+  tables: {
+    candidates: Candidate[];
+    roles: Role[];
+    processes: Process[];
+    matches: Match[];
+    activities: Activity[];
+    sequences: Sequence[];
+  };
+}
+
+/**
+ * Owner-only Google Drive sync. Untouched folder/token logic from v1 — new in v2 is a single
+ * versioned `snapshot.json` (whole-bench JSON, `updatedAt` compare) instead of separate
+ * jobs/candidates/matches files. See dataService.syncWithDrive() for the newer-of / conflict
+ * decision — this class is pure Drive I/O and knows nothing about "newer" or "conflict".
+ */
 class DriveService {
   private token: string | null = null;
   private folderId: string | null = null;
   private fileIds: Record<string, string> = {};
 
-  setToken(token: string) {
+  setToken(token: string | null) {
     this.token = token;
     this.folderId = null;
     this.fileIds = {};
+  }
+
+  isConnected(): boolean {
+    return !!this.token;
   }
 
   private get headers() {
@@ -53,20 +77,20 @@ class DriveService {
     return id;
   }
 
-  async readJSON<T>(filename: string, defaultValue: T): Promise<T> {
-    if (!this.token) return defaultValue;
+  private async readJSON<T>(filename: string): Promise<T | null> {
+    if (!this.token) return null;
     try {
       const fileId = await this.findFile(filename);
-      if (!fileId) return defaultValue;
+      if (!fileId) return null;
       const res = await fetch(`${DRIVE_API}/files/${fileId}?alt=media`, { headers: this.headers });
-      if (!res.ok) return defaultValue;
+      if (!res.ok) return null;
       return await res.json();
     } catch {
-      return defaultValue;
+      return null;
     }
   }
 
-  async writeJSON(filename: string, data: unknown): Promise<void> {
+  private async writeJSON(filename: string, data: unknown): Promise<void> {
     if (!this.token) return;
     try {
       const folderId = await this.findOrCreateFolder();
@@ -104,13 +128,16 @@ class DriveService {
     }
   }
 
-  async loadAll(): Promise<{ jobs: Job[]; candidates: Candidate[]; matches: MatchResponse | null }> {
-    const [jobs, candidates, matches] = await Promise.all([
-      this.readJSON<Job[]>('jobs.json', []),
-      this.readJSON<Candidate[]>('candidates.json', []),
-      this.readJSON<MatchResponse | null>('matches.json', null),
-    ]);
-    return { jobs, candidates, matches };
+  /** Reads the whole-bench snapshot, or null if not signed in / nothing saved yet. */
+  async readSnapshot(): Promise<DriveSnapshot | null> {
+    const data = await this.readJSON<DriveSnapshot>(SNAPSHOT_FILENAME);
+    if (!data || data.v !== 2 || !data.tables) return null;
+    return data;
+  }
+
+  /** Overwrites the whole-bench snapshot. Caller (dataService) owns debouncing. */
+  async writeSnapshot(snapshot: DriveSnapshot): Promise<void> {
+    await this.writeJSON(SNAPSHOT_FILENAME, snapshot);
   }
 
   async uploadResumeToDrive(filename: string, base64: string, mimeType: string): Promise<string> {

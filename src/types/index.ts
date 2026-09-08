@@ -283,12 +283,14 @@ export interface ScoredRow {
   sub: MatchSubScores;
   why: string;
   flags: string[];
+  /** true when this specific row came from the deterministic keyword-fit fallback */
+  fallback?: boolean;
 }
 
 export interface ScoreResponseBody {
   roleId: Id;
   scored: ScoredRow[];
-  /** true when every row came from the deterministic fallback, not the LLM */
+  /** true when the LLM call failed entirely and every row is `fallback: true` */
   fallback: boolean;
   /** hash(role fingerprint + sorted candidate fingerprints) — cache this on the client */
   hash: string;
