@@ -1,0 +1,59 @@
+/** Connections.tsx's own stylesheet — imported directly so it doesn't require touching a
+ * shared CSS entrypoint owned by another builder. Reuses .smhq-settings-* tokens already
+ * defined for the rest of SettingsView. */
+
+.smhq-connect-registration {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.smhq-connect-steps {
+  list-style: decimal;
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.smhq-connect-steps li { line-height: 1.5; }
+.smhq-connect-step-label { color: var(--ink-muted); }
+.smhq-connect-step-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.smhq-connect-step-value code {
+  background: var(--panel-hover);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-size: 12px;
+  word-break: break-all;
+}
+.smhq-connect-copy {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  color: var(--ink-muted);
+  font-size: 11px;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+.smhq-connect-copy:hover { color: var(--ink-strong); border-color: var(--accent); }
+
+.smhq-connect-error {
+  color: var(--danger);
+  font-size: 12.5px;
+}
+
+.smhq-connect-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+}

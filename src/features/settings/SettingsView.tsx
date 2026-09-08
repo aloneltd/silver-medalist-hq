@@ -6,6 +6,7 @@ import type { DriveConflict } from '../../services/dataService';
 import { SETTINGS_KEYS } from '../../types';
 import { Button, Chip, Dialog, useToast } from '../../ui';
 import { downloadFile } from './downloadFile';
+import { Connections } from './Connections';
 
 export function SettingsView() {
   const { user, mode, signIn, signOut } = useAuth();
@@ -76,6 +77,8 @@ export function SettingsView() {
           <Chip tone="accent" selected={theme === 'paper'} onClick={() => setTheme('paper')}>Paper</Chip>
         </div>
       </section>
+
+      <Connections />
 
       <section className="smhq-settings-section">
         <h2>Google Drive sync</h2>
