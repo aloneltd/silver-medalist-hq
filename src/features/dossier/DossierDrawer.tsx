@@ -11,18 +11,20 @@ import { StoryTab } from './tabs/StoryTab';
 import { FitTab } from './tabs/FitTab';
 import { NotesTab } from './tabs/NotesTab';
 import { ActivityTab } from './tabs/ActivityTab';
+import { Lookalikes } from './Lookalikes';
 
 export interface DossierDrawerProps {
   candidateId: string;
   onClose: () => void;
 }
 
-type TabKey = 'story' | 'fit' | 'notes' | 'activity';
+type TabKey = 'story' | 'fit' | 'notes' | 'activity' | 'lookalikes';
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'story', label: 'Story' },
   { key: 'fit', label: 'Fit' },
   { key: 'notes', label: 'Notes' },
   { key: 'activity', label: 'Activity' },
+  { key: 'lookalikes', label: 'People like this' },
 ];
 
 function tenureLabel(tenureStart: string): string {
@@ -187,6 +189,7 @@ export function DossierDrawer({ candidateId, onClose }: DossierDrawerProps) {
             {tab === 'fit' && <FitTab match={match} roleTitle={role?.title} />}
             {tab === 'notes' && <NotesTab candidateId={candidateId} />}
             {tab === 'activity' && <ActivityTab candidateId={candidateId} />}
+            {tab === 'lookalikes' && <Lookalikes candidateId={candidateId} />}
           </div>
         </div>
       )}
