@@ -91,7 +91,7 @@ export function DailyBrief() {
   const rowFor = (fact: BriefFact) => {
     const primary = PRIMARY_ACTION[fact.kind];
     const { candidateId: linkedId, roleId: linkedRoleId } = parseLink(fact.link);
-    const firstId = linkedId ?? nameToId.get(fact.names[0]);
+    const firstId = linkedId ?? fact.ids?.[0] ?? nameToId.get(fact.names[0]);
 
     return (
       <li key={`${fact.kind}-${fact.link}`} className="smhq-brief-fact">
@@ -117,12 +117,17 @@ export function DailyBrief() {
           </span>
         </div>
         <div className="smhq-brief-names">
-          {fact.names.map(name => {
-            const id = nameToId.get(name);
+          {fact.names.map((name, i) => {
+            // Prefer the id parallel to this exact name (fact.ids[i]) over a name->id lookup —
+            // the bench can hold two people with the same name, and a lookup map would silently
+            // collapse them onto whichever id it saw first. Fall back only for the (test-only)
+            // fact literals that predate the ids field.
+            const id = fact.ids?.[i] ?? nameToId.get(name);
+            const key = id ? `${id}-${i}` : `${name}-${i}`;
             return id ? (
-              <Chip key={name} tone="neutral" onClick={() => openCandidate(id)}>{name}</Chip>
+              <Chip key={key} tone="neutral" onClick={() => openCandidate(id)}>{name}</Chip>
             ) : (
-              <Chip key={name} as="span" tone="neutral">{name}</Chip>
+              <Chip key={key} as="span" tone="neutral">{name}</Chip>
             );
           })}
         </div>

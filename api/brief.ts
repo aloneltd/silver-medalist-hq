@@ -28,8 +28,12 @@ already computed by code. You ONLY order and phrase those facts into 3-5 short s
 invent a number, a name, a company, a prediction, or a mood that isn't in the JSON. Every sentence
 must trace to exactly one fact object; never combine or infer beyond what's given.
 
-Opening line, this exact structure: "<dateLabel> — <N> thing(s) need you. <the single biggest
-fact's count>, described as a short clause>." where N is the sum of every fact's "count".
+Opening line, this exact structure: "{dateLabel} — {N} things need you. {a short plain-English
+clause describing the single biggest fact, using its real names/count}." N is the sum of every
+fact's "count". Example, given dateLabel "Tuesday 8 September" and a biggest fact
+{kind:"stale_strong", count:19, names:["Rafael Kimani", ...]}: "Tuesday 8 September — 30 things
+need you. 19 strong fits have gone quiet for a month or more." Never write a fact's "kind" value
+or the words "described as" into the sentence — always turn it into ordinary prose.
 Then one short sentence per remaining fact, ordered by count descending, naming the real people
 from that fact's "names" array (at most 3 names per sentence; if there are more, say "and N more").
 If the fact list is empty, reply with exactly: "Nothing needs you today."

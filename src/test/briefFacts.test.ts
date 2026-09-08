@@ -208,6 +208,14 @@ describe('validatePhrasing', () => {
   it('accepts plain sentences with no name-shaped spans at all', () => {
     expect(validatePhrasing('Nothing needs you today.', [])).toBe(true);
   });
+
+  it('accepts a possessive form of an allowed name ("Kofi Mensah\'s window")', () => {
+    expect(validatePhrasing("Tuesday — Kofi Mensah's window opens soon.", facts)).toBe(true);
+  });
+
+  it('rejects a raw fact-kind identifier leaking into the sentence (a prompt-following glitch)', () => {
+    expect(validatePhrasing('Tuesday — 19 stale_strong, described as a short clause.', facts)).toBe(false);
+  });
 });
 
 describe('getBrief', () => {

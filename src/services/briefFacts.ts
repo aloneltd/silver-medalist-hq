@@ -22,6 +22,12 @@ export interface BriefFact {
   count: number;
   /** Real names only, straight off the bench — never invented, capped for prompt size. */
   names: string[];
+  /**
+   * Candidate id parallel to `names[i]` — a name string alone isn't a safe key or a safe click
+   * target: the bench can (and, past a few thousand rows, will) contain two people with the same
+   * name. Optional only so existing test fixtures that hand-build a BriefFact literal still typecheck.
+   */
+  ids?: Id[];
   /** `?c=<id>` for a single person, `?filter=<kind>[&roleId=...]` for a group — B2's Bench/Today read this. */
   link: string;
   /** best_shortlist only. */
@@ -31,7 +37,7 @@ export interface BriefFact {
 export interface BriefFactList {
   /** Start of "today", UTC-normalized. */
   dateISO: ISODate;
-  /** "Tuesday, 8 September" — computed here so neither the model nor the cache key ever drifts on TZ. */
+  /** "Tuesday 8 September" (DESIGN-v2.1.md §C.4: "{Weekday} {D Month}") — computed here so neither the model nor the cache key ever drifts on TZ. */
   dateLabel: string;
   /** hash(all record ids + updatedAt) — the "benchHash" half of the settings.briefCache cache key. */
   benchHash: string;
@@ -63,8 +69,16 @@ function isSameUTCMonth(iso: ISODate, from: Date): boolean {
   return d.getUTCFullYear() === from.getUTCFullYear() && d.getUTCMonth() === from.getUTCMonth();
 }
 
+/**
+ * DESIGN-v2.1.md §C.4: opening line format "{Weekday} {D Month} — ...". `en-US` day-numeric +
+ * month-long formats as "Weekday, Month D" (comma, month before day) — build the exact
+ * "Weekday D Month" shape ourselves instead of relying on locale ordering.
+ */
 function formatDateLabel(d: Date): string {
-  return d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  const day = d.getUTCDate();
+  const month = d.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
+  return `${weekday} ${day} ${month}`;
 }
 
 function linkFor(kind: BriefFactKind, ids: Id[], roleId?: Id): string {
@@ -72,9 +86,27 @@ function linkFor(kind: BriefFactKind, ids: Id[], roleId?: Id): string {
   return `?filter=${kind}${roleId ? `&roleId=${roleId}` : ''}`;
 }
 
-function toFact(kind: BriefFactKind, names: string[], link: string, extra: Partial<BriefFact> = {}): BriefFact | null {
-  if (!names.length) return null;
-  return { kind, count: names.length, names: names.slice(0, NAME_CAP), link, ...extra };
+/** Pairs a name with the id it came from so a duplicate-named bench never mislinks or double-keys. */
+interface NamedId { id: Id; name: string }
+
+function toFact(kind: BriefFactKind, people: NamedId[], link: string, extra: Partial<BriefFact> = {}): BriefFact | null {
+  if (!people.length) return null;
+  const capped = people.slice(0, NAME_CAP);
+  return { kind, count: people.length, names: capped.map(p => p.name), ids: capped.map(p => p.id), link, ...extra };
+}
+
+/** candidateId -> name, deduped by id and filtered to ids that still resolve on the current bench. */
+function namedIds(ids: Id[], candidateById: Map<Id, Candidate>): NamedId[] {
+  const seen = new Set<Id>();
+  const out: NamedId[] = [];
+  for (const id of ids) {
+    if (seen.has(id)) continue;
+    const c = candidateById.get(id);
+    if (!c) continue;
+    seen.add(id);
+    out.push({ id, name: c.name });
+  }
+  return out;
 }
 
 function computeBenchHash(candidates: Candidate[], matches: Match[], sequences: Sequence[], processes: Process[]): string {
@@ -104,13 +136,16 @@ export async function computeBriefFacts(roleId?: Id, now: Date = new Date()): Pr
 
   // 1. Resurface windows opening within 7 days.
   const resurfacing = candidates.filter(c => c.status === 'took_role' && c.snoozeUntil && withinNextDays(c.snoozeUntil, RESURFACE_WINDOW_DAYS, now));
-  const resurfaceFact = toFact('resurface_window', resurfacing.map(c => c.name), linkFor('resurface_window', resurfacing.map(c => c.id)));
+  const resurfacePeople = namedIds(resurfacing.map(c => c.id), candidateById);
+  const resurfaceFact = toFact('resurface_window', resurfacePeople, linkFor('resurface_window', resurfacePeople.map(p => p.id)));
   if (resurfaceFact) facts.push(resurfaceFact);
 
   // 2. Replies detected and still unanswered — a Match sitting in the 'replied' board stage.
-  const unanswered = matches.filter(m => m.stage === 'replied');
-  const unansweredNames = unanswered.map(m => candidateById.get(m.candidateId)?.name).filter((n): n is string => !!n);
-  const replyFact = toFact('reply_unanswered', unansweredNames, linkFor('reply_unanswered', unanswered.map(m => m.candidateId)));
+  // A candidate can be matched (and replied) on more than one role, so count/name PEOPLE, not
+  // matches — a bench where 6 people replied across 8 roles each must never read "48 replies".
+  const unansweredCandidateIds = matches.filter(m => m.stage === 'replied').map(m => m.candidateId);
+  const unansweredPeople = namedIds(unansweredCandidateIds, candidateById);
+  const replyFact = toFact('reply_unanswered', unansweredPeople, linkFor('reply_unanswered', unansweredPeople.map(p => p.id)));
   if (replyFact) facts.push(replyFact);
 
   // 3. Stale-but-strong: best fit >= 80 across any of their matches, active, no touch in 30+ days.
@@ -125,7 +160,8 @@ export async function computeBriefFacts(roleId?: Id, now: Date = new Date()): Pr
     if (best === undefined || best < STRONG_FIT_THRESHOLD) return false;
     return dataService.computeWarmthDays(c.warmthAt, now) > STALE_DAYS;
   });
-  const staleFact = toFact('stale_strong', staleStrong.map(c => c.name), linkFor('stale_strong', staleStrong.map(c => c.id)));
+  const stalePeople = namedIds(staleStrong.map(c => c.id), candidateById);
+  const staleFact = toFact('stale_strong', stalePeople, linkFor('stale_strong', stalePeople.map(p => p.id)));
   if (staleFact) facts.push(staleFact);
 
   // 4. Best shortlist for the selected role — active candidates, still 'warm', fit >= 70.
@@ -136,25 +172,28 @@ export async function computeBriefFacts(roleId?: Id, now: Date = new Date()): Pr
       .map(m => ({ candidate: candidateById.get(m.candidateId), score: m.override?.score ?? m.score }))
       .filter((x): x is { candidate: Candidate; score: number } => !!x.candidate && x.candidate.status === 'active' && x.score >= SHORTLIST_FIT_THRESHOLD)
       .sort((a, b) => b.score - a.score);
+    const shortlistPeople: NamedId[] = shortlist.map(x => ({ id: x.candidate.id, name: x.candidate.name }));
     const shortlistFact = toFact(
       'best_shortlist',
-      shortlist.map(x => x.candidate.name),
-      linkFor('best_shortlist', shortlist.map(x => x.candidate.id), roleId),
+      shortlistPeople,
+      linkFor('best_shortlist', shortlistPeople.map(p => p.id), roleId),
       { roleTitle: role?.title },
     );
     if (shortlistFact) facts.push(shortlistFact);
   }
 
-  // 5. Sequence steps due today.
+  // 5. Sequence steps due today. (A person can legitimately have two sequences due the same
+  // day across two roles — that's still "2 steps", so this one is intentionally NOT deduped by
+  // candidate the way reply_unanswered is; each due step gets its own name/id pair.)
   const dueToday = sequences.filter(s => s.nextDueAt && isSameUTCDay(s.nextDueAt, now));
-  const dueNames = dueToday.map(s => candidateById.get(s.candidateId)?.name).filter((n): n is string => !!n);
-  const dueFact = toFact('sequence_due', dueNames, linkFor('sequence_due', dueToday.map(s => s.candidateId)));
+  const duePeople = dueToday.map(s => candidateById.get(s.candidateId)).filter((c): c is Candidate => !!c).map(c => ({ id: c.id, name: c.name }));
+  const dueFact = toFact('sequence_due', duePeople, linkFor('sequence_due', duePeople.map(p => p.id)));
   if (dueFact) facts.push(dueFact);
 
   // 6. Placements this month.
   const placedThisMonth = processes.filter(p => p.finishedAs === 'placed' && isSameUTCMonth(p.date, now));
-  const placedNames = placedThisMonth.map(p => candidateById.get(p.candidateId)?.name).filter((n): n is string => !!n);
-  const placedFact = toFact('placement_this_month', placedNames, linkFor('placement_this_month', placedThisMonth.map(p => p.candidateId)));
+  const placedPeople = placedThisMonth.map(p => candidateById.get(p.candidateId)).filter((c): c is Candidate => !!c).map(c => ({ id: c.id, name: c.name }));
+  const placedFact = toFact('placement_this_month', placedPeople, linkFor('placement_this_month', placedPeople.map(p => p.id)));
   if (placedFact) facts.push(placedFact);
 
   return {
@@ -209,7 +248,20 @@ const NAME_LIKE_PATTERN = /\b[A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+){1,2}\b/g;
  * facts. Defense in depth: `getBrief` always has the deterministic template to fall back to, so
  * this only needs to be strict enough to catch a hallucinated name, never perfectly precise.
  */
+/** Strips a trailing possessive ("Abara's" -> "abara", "Osei'" -> "osei") before comparing —
+ * natural phrasing like "Chiara Abara's window" must not read as a hallucinated name just
+ * because NAME_LIKE_PATTERN's word-chars include the apostrophe the possessive is built from. */
+function stripPossessive(word: string): string {
+  return word.replace(/'s$/i, '').replace(/'$/, '');
+}
+
+/** snake_case fact-kind values (e.g. "stale_strong") are internal identifiers, never prose — if
+ * one leaks into the model's sentence verbatim (a prompt-following glitch, not a hallucinated
+ * name, so the NAME_LIKE_PATTERN check below never catches it), reject the phrasing. */
+const FACT_KIND_PATTERN = /\b[a-z]+(?:_[a-z]+)+\b/;
+
 export function validatePhrasing(text: string, facts: BriefFact[]): boolean {
+  if (FACT_KIND_PATTERN.test(text)) return false;
   const allowedFull = new Set(facts.flatMap(f => f.names).map(n => n.toLowerCase()));
   const allowedWords = new Set(facts.flatMap(f => f.names).flatMap(n => n.split(/\s+/).map(w => w.toLowerCase())));
   for (const f of facts) if (f.roleTitle) for (const w of f.roleTitle.split(/\s+/)) allowedWords.add(w.toLowerCase());
@@ -218,8 +270,8 @@ export function validatePhrasing(text: string, facts: BriefFact[]): boolean {
   for (const span of spans) {
     if (KNOWN_SENTENCE_OPENERS.has(span.split(/\s+/)[0])) continue;
     const lower = span.toLowerCase();
-    if (allowedFull.has(lower)) continue;
-    const words = lower.split(/\s+/);
+    if (allowedFull.has(lower) || allowedFull.has(stripPossessive(lower))) continue;
+    const words = lower.split(/\s+/).map(stripPossessive);
     if (words.every(w => allowedWords.has(w))) continue;
     return false; // a name-shaped span that traces to nothing in the fact list
   }
