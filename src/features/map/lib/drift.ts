@@ -29,11 +29,15 @@ export interface DriftPoint extends TargetPoint {
 }
 
 /** Estimated days-since-contact `monthsAgo` months before `nowMs`. Null = not yet on the
- * bench then (candidate.createdAt is after that point) — Drift hides these dots entirely. */
+ * bench then — Drift hides these dots entirely. Gated on `sourceDate` (the consent/source-of-
+ * record date), not `createdAt`: `createdAt` is a database bookkeeping timestamp (often just
+ * "when this row was written" — e.g. every row in the seeded sample bench shares one `createdAt`
+ * from the seeding run), while `sourceDate` is the actual real-world date the recruiter sourced
+ * this person, which is what "on the bench yet" means to a human. */
 export function pastWarmthDays(c: Candidate, monthsAgo: number, nowMs: number): number | null {
   if (monthsAgo <= 0) return Math.max(0, Math.floor((nowMs - new Date(c.warmthAt).getTime()) / DAY_MS));
   const pastMs = nowMs - monthsAgo * AVG_MONTH_DAYS * DAY_MS;
-  if (new Date(c.createdAt).getTime() > pastMs) return null;
+  if (new Date(c.sourceDate).getTime() > pastMs) return null;
   const warmthAtMs = new Date(c.warmthAt).getTime();
   return Math.max(0, Math.floor((pastMs - warmthAtMs) / DAY_MS));
 }
