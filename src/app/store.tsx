@@ -77,6 +77,12 @@ interface AppUIContextValue {
   /** First-run coach mark on "Paste a role" — dismissed for good after the first sync. */
   coachDismissed: boolean;
   dismissCoach: () => void;
+
+  /** v2.1 — set by the Target when a ring is clicked (DESIGN-v2.1.md §B: "Clicking a ring
+   * filters the Bench"); the Bench view reads this to pre-filter by fit range. Cleared by
+   * setting it back to null (e.g. the Bench's own filter chips take over from here). */
+  benchFitFilter: { min: number; max: number; label: string } | null;
+  setBenchFitFilter: (f: { min: number; max: number; label: string } | null) => void;
 }
 
 const AppUIContext = createContext<AppUIContextValue | null>(null);
@@ -117,6 +123,8 @@ export function AppUIProvider({ children }: { children: ReactNode }) {
   const [coachDismissed, setCoachDismissed] = useState(() => {
     try { return localStorage.getItem(COACH_KEY) === '1'; } catch { return false; }
   });
+
+  const [benchFitFilter, setBenchFitFilter] = useState<{ min: number; max: number; label: string } | null>(null);
 
   const roles = useLiveQuery(() => db.roles.orderBy('updatedAt').reverse().toArray(), [], []) ?? [];
 
@@ -238,6 +246,7 @@ export function AppUIProvider({ children }: { children: ReactNode }) {
     railCollapsed, setRailCollapsed,
     syncPhase, syncRoleId, syncProgress, syncError, flipActive, lastSync, runSync,
     coachDismissed, dismissCoach,
+    benchFitFilter, setBenchFitFilter,
   };
 
   return <AppUIContext.Provider value={value}>{children}</AppUIContext.Provider>;

@@ -1,0 +1,121 @@
+/**
+ * The Target's own stylesheet — imported directly by MapView.tsx (Vite bundles CSS from any
+ * module import), so it doesn't require touching the shared src/index.css import list. Reuses
+ * tokens from src/ui/tokens.css and the `.smhq-map-point-label` class already defined in
+ * src/features/bench/bench.css (kept there for back-compat with the old scatter).
+ */
+
+.smhq-target-header {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.smhq-target-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+.smhq-target-subline {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.smhq-target-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+.smhq-target-legend-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.smhq-target-legend-ring:hover,
+.smhq-target-legend-ring:focus-visible {
+  background: var(--panel-hover);
+  color: var(--ink);
+}
+.smhq-target-legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: inline-block;
+}
+.smhq-target-ring-strong { color: var(--accent); }
+.smhq-target-ring-possible { color: var(--info); }
+.smhq-target-ring-not_yet { color: var(--ink-faint, var(--ink-muted)); }
+.smhq-target-legend-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--panel-border);
+}
+.smhq-target-legend-tick { white-space: nowrap; }
+
+.smhq-target-rings circle {
+  fill: none;
+}
+.smhq-target-ring-line {
+  stroke: var(--panel-border);
+  stroke-width: 1;
+}
+.smhq-target-ring-line-strong {
+  stroke: color-mix(in srgb, var(--accent) 35%, var(--panel-border));
+  stroke-dasharray: 3 3;
+}
+.smhq-target-tick {
+  stroke: var(--ink-faint, var(--ink-muted));
+  stroke-width: 1.5;
+}
+.smhq-target-tick-label {
+  font-size: 10px;
+  fill: var(--ink-muted);
+  pointer-events: none;
+}
+
+.smhq-target-drift {
+  border-top: 1px solid var(--panel-border);
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.smhq-target-drift-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.smhq-target-drift-slider input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.smhq-target-drift-readout {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  min-width: 84px;
+  text-align: right;
+}
+.smhq-target-drift-caption {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .smhq-target-legend { gap: 8px; font-size: 10.5px; }
+  .smhq-target-subline { max-width: none; }
+  .smhq-target-drift-slider { flex-wrap: wrap; }
+}

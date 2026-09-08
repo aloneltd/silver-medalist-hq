@@ -1,10 +1,21 @@
 import { Avatar, FitRing, StatusChip } from '../../ui';
-import type { MapPoint } from './lib/geometry';
+import type { TargetPoint } from './lib/geometry';
 
 export interface MapTooltipProps {
-  point: MapPoint;
+  point: TargetPoint;
   x: number;
   y: number;
+}
+
+function clockLabel(days: number): string {
+  if (days === 0) return 'touched today';
+  if (days === 1) return 'touched 1 day ago';
+  if (days >= 365) return 'touched 12+ months ago';
+  if (days >= 30) {
+    const months = Math.round(days / 30.4375);
+    return `touched ~${months} month${months === 1 ? '' : 's'} ago`;
+  }
+  return `touched ${days} days ago`;
 }
 
 /** A real card, not a native title tooltip — per BLUEPRINT-v2.md "tooltips are real cards." */
@@ -31,7 +42,7 @@ export function MapTooltip({ point, x, y }: MapTooltipProps) {
           <span className="smhq-truncate" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink-strong)' }}>
             {point.name}
           </span>
-          <span className="smhq-muted" style={{ fontSize: 11 }}>{point.days}d since touch</span>
+          <span className="smhq-muted" style={{ fontSize: 11 }}>{clockLabel(point.warmthDays)}</span>
         </span>
         <FitRing value={point.fit} size={34} />
       </div>
