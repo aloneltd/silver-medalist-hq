@@ -66,7 +66,7 @@ ${RESPONSE_SCHEMA}`
   // *going* to fail for a typical full-bench sync — the only question is how long the UI waits
   // to find that out. A live provider that's genuinely just slow (not rate-limited) rarely
   // needs anywhere near 20s to answer; a live provider that's rate-limited answers in well
-  // under a second. Capping at 4s means a real, in-budget score still completes comfortably,
+  // under a second. Capping at 3s means a real, in-budget score still completes comfortably,
   // while a doomed one hands off to the deterministic keyword-fit fallback fast instead of
   // making the recruiter stare at a spinner for 20-40s across the two runScorePass attempts.
   const result = await complete({
@@ -75,7 +75,7 @@ ${RESPONSE_SCHEMA}`
     json: true,
     temperature: attempt ? 0.6 : 0.3,
     maxTokens: 4096,
-    timeoutMs: 4000,
+    timeoutMs: 3000,
   })
 
   const parsed = parseJson<{ scored?: unknown[] }>(result.text)
