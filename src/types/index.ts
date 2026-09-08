@@ -173,7 +173,11 @@ export interface Match {
 
 // ======================================================================= activities
 
-export type ActivityType = 'touch' | 'email_copied' | 'note' | 'stage' | 'status' | 'reminder' | 'import';
+export type ActivityType =
+  | 'touch' | 'email_copied' | 'note' | 'stage' | 'status' | 'reminder' | 'import'
+  // v2.1 — B1 integration (Outlook + NL command): a real Outlook draft was created / sent,
+  // replyWatcher.ts detected an inbound reply, or nlCommand.ts applied a natural-language plan.
+  | 'email_drafted' | 'email_sent' | 'reply_detected' | 'nl_command';
 
 export interface Activity {
   id: Id;
@@ -221,6 +225,13 @@ export const SETTINGS_KEYS = {
   migratedV2: 'migratedV2',
   driveSnapshotAt: 'driveSnapshotAt',
   driveConflict: 'driveConflict',
+  // v2.1 — B1 integration
+  /** true once the user has completed Microsoft sign-in at least once (MSAL owns the actual token/account). */
+  msConnected: 'msConnected',
+  /** explicit opt-in before outlookService.sendDraft() is allowed to actually send, not just draft. */
+  outlookAllowSend: 'outlookAllowSend',
+  /** briefFacts.ts / api/brief.ts cache, keyed by (day, benchHash) inside the stored value. */
+  briefCache: 'briefCache',
 } as const;
 export type SettingsKey = typeof SETTINGS_KEYS[keyof typeof SETTINGS_KEYS];
 
