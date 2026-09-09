@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Bundle guard — BLUEPRINT-v2.md: "Initial JS ≤ 190 kB gzipped."
+ * Bundle guard — SMV3 build brief: "initial JS ≤ 220 kB gz (importers lazy-loaded)".
  *
  * Walks `dist/.vite/manifest.json` (from `build: { manifest: true }` in vite.config.ts) starting
  * at the HTML entry, following only STATIC `imports` (never `dynamicImports` — those are the
@@ -12,7 +12,7 @@ import { readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import path from 'node:path';
 
-const BUDGET_KB = 190;
+const BUDGET_KB = 220;
 const DIST = path.resolve(process.cwd(), 'dist');
 const MANIFEST_PATH = path.join(DIST, '.vite', 'manifest.json');
 
