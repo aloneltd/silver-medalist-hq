@@ -1,10 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap');
+/* v3 adds Instrument Serif — the display face in design-v3/*.dc.html. Inter and Fraunces
+ * stay for the v2.1 components that have not been re-skinned. Georgia is the fallback, so a
+ * blocked font request costs the look nothing structural. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=Instrument+Serif&display=swap');
 @import "tailwindcss";
 @import "./ui/tokens.css";
 @import "./ui/primitives.css";
 @import "./app/app.css";
 @import "./features/features.css";
 @import "./features/bench/bench.css";
+@import "./v3/paper.css";
 
 @layer base {
   * {

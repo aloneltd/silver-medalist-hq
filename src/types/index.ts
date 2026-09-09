@@ -75,6 +75,8 @@ export interface Candidate {
   warmthAt: ISODate;
   /** consent / source-of-record date, for GDPR */
   sourceDate: ISODate;
+  /** v3 — where this person came into the bench from, and the way back to the original. */
+  source?: PersonSource;
   notes: Note[];
   createdAt: ISODate;
   updatedAt: ISODate;
@@ -341,3 +343,174 @@ export interface ParseResumeRequestBody {
 
 export type ParseResumeResponseBody =
   Partial<Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'notes'>> & { name: string };
+
+// ==================================================================================== v3
+//
+// FROZEN CONTRACT — Silver Medalist HQ v3 (Sources · Team · the Paper shell).
+// Everything below is additive: no v2 shape changed, so every v2.1 service keeps working.
+// The v3 builders (import engine, Sources, People, Team) code against these names.
+
+/** Where a person came into the bench from. One badge per person, forever. */
+export type SourceKind =
+  | 'sample'      // the seeded demo bench
+  | 'manual'      // typed in by hand
+  | 'resume'      // a dropped PDF/DOCX
+  | 'csv'         // a generic spreadsheet
+  | 'ats'         // Greenhouse / Lever / Ashby / Workable / Teamtailor / Bullhorn export
+  | 'linkedin'    // a LinkedIn Recruiter / Sales Navigator export
+  | 'jobboard'    // LinkedIn Jobs / Indeed / Welcome to the Jungle export
+  | 'slack'       // a Slack channel export zip
+  | 'outlook'     // an Outlook mailbox scan
+  | 'drive'       // a watched Google Drive folder
+  | 'capture'     // the Capture bookmarklet
+  | 'link'        // the public add-to-bench link
+  | 'teammate';   // added by a teammate inside the app
+
+export interface PersonSource {
+  kind: SourceKind;
+  /** Human label shown on the card: "Greenhouse export", "LinkedIn capture", "added by Dana". */
+  label: string;
+  /** Back to the original: a profile URL, a file name, a mail deep link. */
+  url?: string;
+  /** The import batch that brought them in — the handle undo needs. */
+  importId?: Id;
+  /** Display name of whoever added them. */
+  addedBy?: string;
+  at: ISODate;
+}
+
+/** Every field a column can map to. `skip` means "ignore this column". */
+export type ImportFieldKey =
+  | 'name' | 'firstName' | 'lastName' | 'email' | 'phone' | 'linkedin' | 'location'
+  | 'currentEmployer' | 'currentTitle' | 'seniority' | 'skills' | 'tenureStart'
+  | 'compExpectation' | 'compAtLastProcess' | 'noticePeriodDays' | 'tags' | 'notes'
+  | 'status' | 'statusReason'
+  | 'processRole' | 'processStage' | 'processReason' | 'processDate' | 'processLostTo'
+  | 'sourceUrl' | 'skip';
+
+export interface ColumnMapping {
+  /** The header as it appears in the file. */
+  column: string;
+  field: ImportFieldKey;
+  /** `exact` = a known header we match by rule; `guess` = the AI (or fuzzy) proposed it. */
+  confidence: 'exact' | 'guess';
+  /** First non-empty value in that column, shown next to the mapping. */
+  sample?: string;
+}
+
+/** What a dedupe match was made on — the recruiter seat's trust ladder. */
+export type DedupeKey = 'email' | 'linkedin' | 'phone' | 'name+employer';
+
+export interface StagedPerson {
+  /** Stable within one plan; used as a React key and as the decision handle. */
+  key: string;
+  /** A fully-formed candidate, ids already assigned. */
+  draft: Candidate;
+  /** The candidacy record this row describes, when the file carried one. */
+  process?: Omit<Process, 'id' | 'candidateId' | 'roleId' | 'createdAt' | 'updatedAt'> & { roleTitle?: string };
+  /** Set when this row looks like somebody already on the bench. */
+  existing?: Candidate;
+  matchOn?: DedupeKey;
+  /** `exact` merges by default; `probable` never auto-merges (three Sarah Chens). */
+  confidence?: 'exact' | 'probable';
+  /** One sentence saying why we think they are the same person, in plain words. */
+  explain?: string;
+  /** What the merge would actually change on the existing record. */
+  changedFields?: string[];
+  decision: 'create' | 'merge' | 'skip';
+  warnings?: string[];
+}
+
+export interface ImportPlan {
+  id: Id;
+  kind: SourceKind;
+  /** "Greenhouse export", "12 résumés", "#referrals Slack export". */
+  sourceLabel: string;
+  filename?: string;
+  rowCount: number;
+  /** Present for tabular imports; absent for résumé/capture imports. */
+  columns?: ColumnMapping[];
+  people: StagedPerson[];
+  /** Honest notes shown above the preview ("Greenhouse exports carry no résumés"). */
+  notes: string[];
+  /** True when the column mapping came from the AI rather than known-header rules. */
+  mappedByAI?: boolean;
+}
+
+/** One committed import, kept so it can be undone. */
+export interface ImportBatch {
+  id: Id;
+  at: ISODate;
+  kind: SourceKind;
+  sourceLabel: string;
+  filename?: string;
+  rowCount: number;
+  createdIds: Id[];
+  mergedIds: Id[];
+  /** Pre-merge copies of every record we touched — undo restores these verbatim. */
+  before: Record<Id, Candidate>;
+  /** Process rows this import created, so undo can remove them too. */
+  processIds: Id[];
+  actor: string;
+  undone?: boolean;
+}
+
+// ------------------------------------------------------------------------------- team
+
+export type TeamRole = 'owner' | 'editor' | 'contributor';
+
+export interface TeamMember {
+  id: Id;
+  name: string;
+  email: string;
+  role: TeamRole;
+  addedAt: ISODate;
+  lastActiveAt?: ISODate;
+  /** How many people they have put on the bench — the attribution line in the brief. */
+  addedCount?: number;
+  /** Seeded sample teammate, clearly labelled in local mode. */
+  sample?: boolean;
+}
+
+export type SubmissionState = 'waiting' | 'accepted' | 'rejected';
+
+/** Something waiting in the Inbox — never on the bench until a human accepts it. */
+export interface Submission {
+  id: Id;
+  at: ISODate;
+  via: 'link' | 'capture' | 'outlook' | 'drive' | 'teammate' | 'resume';
+  /** Who sent it: a teammate's name, or the name typed into the public form. */
+  addedBy: string;
+  /** "why they were strong", in the sender's words. */
+  note?: string;
+  /** Which role they were suggested for, as free text. */
+  roleHint?: string;
+  draft: Partial<Candidate> & { name: string };
+  /** The original text/URL we structured this from. */
+  raw?: string;
+  sourceUrl?: string;
+  state: SubmissionState;
+  sample?: boolean;
+}
+
+/** What the Capture bookmarklet posts into /capture, as URL params or a POST body. */
+export interface CaptureDraft {
+  name?: string;
+  headline?: string;
+  location?: string;
+  url?: string;
+  /** The visible text of the page, trimmed — we structure this with the AI ladder. */
+  text?: string;
+  site?: string;
+}
+
+export const V3_SETTINGS_KEYS = {
+  /** The 8-stop tour: set once it has been finished or skipped. */
+  tourDone: 'v3TourDone',
+  /** Public add-to-bench link token + expiry. */
+  addLink: 'v3AddLink',
+  /** Which people-list layout the user last chose: 'cards' | 'list' | 'target'. */
+  peopleLayout: 'v3PeopleLayout',
+  /** Drive folder id being watched for résumés. */
+  driveResumeFolder: 'v3DriveResumeFolder',
+} as const;

@@ -94,7 +94,9 @@ function readInitialTheme(): ThemeName {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     if (saved === 'graphite' || saved === 'paper') return saved;
   } catch { /* ignore */ }
-  return 'graphite';
+  // v3: Paper is the product now. Graphite stays as an option for people who want the dark
+  // console, but a stranger's first screen is warm white (DESIGN-v3.md, "Direction").
+  return 'paper';
 }
 
 /** Central shell UI state: theme, the top-bar role selector, the command palette, the
