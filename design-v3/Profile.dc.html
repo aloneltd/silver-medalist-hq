@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap">
+  <style>
+    body{margin:0;background:#FBFAF7;color:#17181C;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+    a{color:#0B6E62;text-decoration:none} a:hover{color:#0F9D8A}
+    .serif{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.015em;line-height:1.1}
+    .nav{display:flex;align-items:center;gap:8px;height:72px;padding:0 120px;border-bottom:1px solid #E8E4DC;background:#FFFFFF}
+    .navlink{padding:8px 12px;border-radius:8px;color:#5A6068;font-size:14px;font-weight:500}
+    .navlink.on{color:#17181C;background:#FBFAF7}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;font-size:15px;font-weight:600;border:1px solid #E8E4DC;background:#FFFFFF;color:#17181C;white-space:nowrap}
+    .btn.primary{background:#0F9D8A;border-color:#0F9D8A;color:#FFFFFF}
+    .btn.sm{height:36px;padding:0 14px;font-size:14px}
+    .btn.ghost{border-color:transparent;background:transparent;color:#5A6068}
+    .card{background:#FFFFFF;border:1px solid #E8E4DC;border-radius:12px;box-shadow:0 1px 2px rgba(23,24,28,.06)}
+    .avatar{width:48px;height:48px;border-radius:999px;background:#E7F4F1;color:#0B6E62;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px;flex:none}
+    .pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:#FBFAF7;border:1px solid #E8E4DC;font-size:12px;color:#5A6068;font-weight:500;white-space:nowrap}
+    .pill.wash{background:#E7F4F1;border-color:#E7F4F1;color:#0B6E62}
+    .meta{font-size:12px;color:#9AA0A6}
+    .sec{font-size:14px;color:#5A6068}
+    .fit{color:#0B6E62;font-weight:600}
+    .dot{width:6px;height:6px;border-radius:999px;background:#0F9D8A;display:inline-block}
+    .name{font-size:20px;font-weight:600;line-height:1.3}
+    .story{font-size:17px;color:#17181C;line-height:1.5}
+    .tip{position:absolute;background:#17181C;color:#FFFFFF;font-size:14px;line-height:1.45;padding:12px 14px;border-radius:8px;width:260px;box-shadow:0 8px 24px -8px rgba(23,24,28,.3)}
+    .tip::after{content:"";position:absolute;left:24px;bottom:-6px;width:12px;height:12px;background:#17181C;transform:rotate(45deg)}
+    .u{text-decoration:underline dotted #9AA0A6;text-underline-offset:4px}
+    .kbd{display:inline-block;font-size:12px;color:#5A6068;border:1px solid #E8E4DC;border-radius:6px;padding:0 6px;line-height:20px;background:#FBFAF7}
+    .row{display:flex;align-items:center}
+  </style>
+</helmet>
+<div style="width:1440px;min-height:1500px;background:#FBFAF7">
+<div class="nav" style="display:flex;align-items:center;gap:8px;height:72px;padding:0 120px;border-bottom:1px solid #E8E4DC;background:#FFFFFF">
+  <div style="display:flex;align-items:center;gap:12px;font-weight:600;font-size:17px;margin-right:24px">
+    <div style="width:32px;height:32px;border-radius:8px;background:#E7F4F1;display:flex;align-items:center;justify-content:center">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B6E62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4.5"></circle><circle cx="12" cy="12" r="1"></circle></svg>
+    </div>
+    <span>Silver Medalist</span>
+  </div>
+  <a class="navlink" href="#">Home</a>
+  <a class="navlink on" href="#">People</a>
+  <a class="navlink" href="#">Roles</a>
+  <a class="navlink" href="#">Sources</a>
+  <a class="navlink" href="#">Team</a>
+  <div style="margin-left:auto;display:flex;gap:12px;align-items:center">
+    <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid #E8E4DC;border-radius:8px;background:#FBFAF7;color:#9AA0A6;font-size:14px;width:300px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0A6" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span style="flex:1">Ask anything, or find a person…</span><span class="kbd">⌘K</span>
+    </div>
+    <a class="btn ghost sm" href="#" style="color:#5A6068">How this works</a>
+    <div style="width:36px;height:36px;border-radius:999px;background:#17181C;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">MS</div>
+  </div>
+</div>
+<div style="width:1200px;margin:0 auto;padding:40px 0 80px">
+  <a href="#" class="sec" style="color:#5A6068">← People · Strong fit for Staff SRE</a>
+
+  <!-- Header -->
+  <div style="display:flex;gap:28px;align-items:flex-start;margin-top:20px">
+    <div class="avatar" style="width:88px;height:88px;font-size:28px">KK</div>
+    <div style="flex:1">
+      <h1 class="serif" style="font-size:44px;margin:0">Kofi Kowalski</h1>
+      <div style="font-size:17px;color:#5A6068;margin-top:4px">Staff Site Reliability Engineer at Lattice · 2 years · London, 2 days in office · <a href="#">LinkedIn</a> · kofi.k@…</div>
+      <div style="font-size:20px;line-height:1.5;margin-top:16px;max-width:820px">Came second for Staff SRE in May 2026 and lost to an internal hire. Interviewers wrote "the strongest on-call thinking we saw". He replied to your note yesterday and asked how on-call is split.</div>
+      <div class="row" style="gap:12px;margin-top:16px;font-size:14px;color:#5A6068;flex-wrap:wrap"><span class="fit u" style="font-size:15px">Strong fit for Staff SRE · 94</span><span>·</span><span class="u">replied yesterday</span><span>·</span><span class="pill" style="height:24px;font-size:12px">from Outlook · 12 May 2026</span><span>·</span><span class="pill wash" style="height:24px;font-size:12px">Active</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:220px">
+      <a class="btn primary" href="#">Reply from Outlook</a>
+      <a class="btn" href="#">Write a warm note</a>
+      <a class="btn ghost" href="#">Change status…</a>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:40px;margin-top:40px;align-items:flex-start">
+    <!-- Left: fit + story -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:24px">
+
+      <div class="card" style="padding:28px">
+        <div class="row" style="justify-content:space-between"><div class="serif" style="font-size:24px">Why 94 for Staff SRE</div><div class="sec">out of 100 · <span class="u">how we score</span></div></div>
+        <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:24px;margin-top:20px">
+          <div><div class="row" style="justify-content:space-between;font-size:14px"><span style="font-weight:600">Skills</span><span class="sec">38 / 40</span></div><div style="height:6px;background:#E8E4DC;border-radius:999px;margin-top:8px"><div style="width:95%;height:6px;background:#0F9D8A;border-radius:999px"></div></div><div class="meta" style="margin-top:8px;line-height:1.45">Kubernetes, incident command, Terraform all on the must-have list. Missing: Go in production.</div></div>
+          <div><div class="row" style="justify-content:space-between;font-size:14px"><span style="font-weight:600">Seniority</span><span class="sec">20 / 20</span></div><div style="height:6px;background:#E8E4DC;border-radius:999px;margin-top:8px"><div style="width:100%;height:6px;background:#0F9D8A;border-radius:999px"></div></div><div class="meta" style="margin-top:8px;line-height:1.45">Staff today, staff role. No step down.</div></div>
+          <div><div class="row" style="justify-content:space-between;font-size:14px"><span style="font-weight:600">Pay</span><span class="sec">18 / 20</span></div><div style="height:6px;background:#E8E4DC;border-radius:999px;margin-top:8px"><div style="width:90%;height:6px;background:#0F9D8A;border-radius:999px"></div></div><div class="meta" style="margin-top:8px;line-height:1.45">Asked £165k in May. Band is £150–175k. Fine.</div></div>
+          <div><div class="row" style="justify-content:space-between;font-size:14px"><span style="font-weight:600">Timing</span><span class="sec">18 / 20</span></div><div style="height:6px;background:#E8E4DC;border-radius:999px;margin-top:8px"><div style="width:90%;height:6px;background:#0F9D8A;border-radius:999px"></div></div><div class="meta" style="margin-top:8px;line-height:1.45">Two years at Lattice, and he just replied. Good moment.</div></div>
+        </div>
+        <div class="row" style="gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid #E8E4DC"><span class="sec">Disagree?</span><a class="btn sm" href="#">Adjust the score and say why</a><span class="meta">We remember your reason next time.</span></div>
+      </div>
+
+      <div class="card" style="padding:28px">
+        <div class="serif" style="font-size:24px">Story</div>
+        <div style="display:flex;flex-direction:column;gap:0;margin-top:16px">
+          <div style="display:flex;gap:20px"><div style="width:110px;flex:none" class="sec">Yesterday</div><div style="flex:1;padding-bottom:20px;border-left:1px solid #E8E4DC;padding-left:20px;position:relative"><span class="dot" style="position:absolute;left:-3.5px;top:8px"></span><div style="font-weight:600">He replied</div><div class="sec" style="line-height:1.5;margin-top:2px">"Thanks Mark, good to hear from you. How is on-call split across the team these days?" <a href="#">Open in Outlook</a></div></div></div>
+          <div style="display:flex;gap:20px"><div style="width:110px;flex:none" class="sec">Mon 7 Sep</div><div style="flex:1;padding-bottom:20px;border-left:1px solid #E8E4DC;padding-left:20px;position:relative"><span class="dot" style="position:absolute;left:-3.5px;top:8px;background:#9AA0A6"></span><div style="font-weight:600">You wrote to him about Staff SRE</div><div class="sec" style="line-height:1.5;margin-top:2px">Sent from Outlook. Mentioned May and that the role is now remote-friendly.</div></div></div>
+          <div style="display:flex;gap:20px"><div style="width:110px;flex:none" class="sec">May 2026</div><div style="flex:1;padding-bottom:20px;border-left:1px solid #E8E4DC;padding-left:20px;position:relative"><span class="dot" style="position:absolute;left:-3.5px;top:8px;background:#C77A24"></span><div style="font-weight:600">Came second for Staff SRE</div><div class="sec" style="line-height:1.5;margin-top:2px">Lost to an internal hire. Four interviews, all yes. Scorecard attached. <span style="color:#17181C">Interviewer note: "strongest on-call thinking we saw".</span></div></div></div>
+          <div style="display:flex;gap:20px"><div style="width:110px;flex:none" class="sec">12 May 2026</div><div style="flex:1;border-left:1px solid #E8E4DC;padding-left:20px;position:relative"><span class="dot" style="position:absolute;left:-3.5px;top:8px;background:#9AA0A6"></span><div style="font-weight:600">Joined the bench from Outlook</div><div class="sec" style="line-height:1.5;margin-top:2px">Found in "Application: Staff SRE" with his résumé attached. Consent recorded from the application. <a href="#">See the original</a></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: details + lookalikes + notes -->
+    <div style="width:360px;flex:none;display:flex;flex-direction:column;gap:20px">
+      <div class="card" style="padding:24px">
+        <div style="font-weight:600">Details</div>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:10px 12px;margin-top:12px;font-size:14px;line-height:1.45"><span class="sec">Skills</span><span>Kubernetes, Terraform, incident command, AWS, Python</span><span class="sec">Asked for</span><span>£165k, May 2026</span><span class="sec">Notice</span><span>3 months</span><span class="sec">Visa</span><span>None needed</span><span class="sec">Consent</span><span>Applied 12 May 2026 · <a href="#">source</a></span><span class="sec">Also added by</span><span>Dana, from the Greenhouse export (merged)</span></div>
+      </div>
+      <div class="card" style="padding:24px">
+        <div class="row" style="justify-content:space-between"><div style="font-weight:600">People like Kofi</div><span class="meta">by skills and level</span></div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;font-size:14px">
+          <div class="row" style="gap:12px"><div class="avatar" style="width:36px;height:36px;font-size:13px;background:#E4E9F7;color:#3B4F8C">CA</div><div style="flex:1;line-height:1.4"><span style="font-weight:600">Chiara Abara</span><br><span class="sec">Same incident-command depth, more Go. Fit 91.</span></div></div>
+          <div class="row" style="gap:12px"><div class="avatar" style="width:36px;height:36px;font-size:13px;background:#F1E4F7;color:#7A3B8C">TO</div><div style="flex:1;line-height:1.4"><span style="font-weight:600">Tomasz Osei</span><br><span class="sec">Platform rather than SRE, same level. Fit 83.</span></div></div>
+          <div class="row" style="gap:12px"><div class="avatar" style="width:36px;height:36px;font-size:13px;background:#E8E4DC;color:#5A6068">PR</div><div style="flex:1;line-height:1.4"><span style="font-weight:600">Priya Raman</span><br><span class="sec">Two levels down today, strong trajectory. Fit 72.</span></div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px">
+        <div style="font-weight:600">Notes</div>
+        <div style="font-size:14px;line-height:1.5;margin-top:10px;display:flex;flex-direction:column;gap:10px">
+          <div><span class="sec">Dana · Aug</span><br>Met him at SREcon. Still happy at Lattice but "would move for a team that owns its own platform".</div>
+          <div><span class="sec">Mark · May</span><br>Cares about on-call rotation size more than pay. Ask about it first.</div>
+        </div>
+        <div class="row" style="margin-top:12px;height:40px;border:1px solid #E8E4DC;border-radius:8px;background:#FBFAF7;padding:0 12px;color:#9AA0A6;font-size:14px">Add a note…</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

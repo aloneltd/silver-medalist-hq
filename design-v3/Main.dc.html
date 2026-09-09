@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap">
+  <style>
+    body{margin:0;background:#FBFAF7;color:#17181C;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+    a{color:#0B6E62;text-decoration:none} a:hover{color:#0F9D8A}
+    .serif{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.015em;line-height:1.1}
+    .nav{display:flex;align-items:center;gap:8px;height:72px;padding:0 120px;border-bottom:1px solid #E8E4DC;background:#FFFFFF}
+    .navlink{padding:8px 12px;border-radius:8px;color:#5A6068;font-size:14px;font-weight:500}
+    .navlink.on{color:#17181C;background:#FBFAF7}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;font-size:15px;font-weight:600;border:1px solid #E8E4DC;background:#FFFFFF;color:#17181C;white-space:nowrap}
+    .btn.primary{background:#0F9D8A;border-color:#0F9D8A;color:#FFFFFF}
+    .btn.sm{height:36px;padding:0 14px;font-size:14px}
+    .btn.ghost{border-color:transparent;background:transparent;color:#5A6068}
+    .card{background:#FFFFFF;border:1px solid #E8E4DC;border-radius:12px;box-shadow:0 1px 2px rgba(23,24,28,.06)}
+    .avatar{width:48px;height:48px;border-radius:999px;background:#E7F4F1;color:#0B6E62;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px;flex:none}
+    .pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:#FBFAF7;border:1px solid #E8E4DC;font-size:12px;color:#5A6068;font-weight:500;white-space:nowrap}
+    .pill.wash{background:#E7F4F1;border-color:#E7F4F1;color:#0B6E62}
+    .meta{font-size:12px;color:#9AA0A6}
+    .sec{font-size:14px;color:#5A6068}
+    .fit{color:#0B6E62;font-weight:600}
+    .dot{width:6px;height:6px;border-radius:999px;background:#0F9D8A;display:inline-block}
+    .name{font-size:20px;font-weight:600;line-height:1.3}
+    .story{font-size:17px;color:#17181C;line-height:1.5}
+    .tip{position:absolute;background:#17181C;color:#FFFFFF;font-size:14px;line-height:1.45;padding:12px 14px;border-radius:8px;width:260px;box-shadow:0 8px 24px -8px rgba(23,24,28,.3)}
+    .tip::after{content:"";position:absolute;left:24px;bottom:-6px;width:12px;height:12px;background:#17181C;transform:rotate(45deg)}
+    .u{text-decoration:underline dotted #9AA0A6;text-underline-offset:4px}
+    .kbd{display:inline-block;font-size:12px;color:#5A6068;border:1px solid #E8E4DC;border-radius:6px;padding:0 6px;line-height:20px;background:#FBFAF7}
+    .row{display:flex;align-items:center}
+  </style>
+</helmet>
+<div style="width:1440px;min-height:2400px;background:#FBFAF7">
+<div class="nav" style="display:flex;align-items:center;gap:8px;height:72px;padding:0 120px;border-bottom:1px solid #E8E4DC;background:#FFFFFF">
+  <div style="display:flex;align-items:center;gap:12px;font-weight:600;font-size:17px;margin-right:24px">
+    <div style="width:32px;height:32px;border-radius:8px;background:#E7F4F1;display:flex;align-items:center;justify-content:center">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B6E62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4.5"></circle><circle cx="12" cy="12" r="1"></circle></svg>
+    </div>
+    <span>Silver Medalist</span>
+  </div>
+  <a class="navlink on" href="#">Home</a>
+  <a class="navlink" href="#">People</a>
+  <a class="navlink" href="#">Roles</a>
+  <a class="navlink" href="#">Sources</a>
+  <a class="navlink" href="#">Team</a>
+  <div style="margin-left:auto;display:flex;gap:12px;align-items:center">
+    <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid #E8E4DC;border-radius:8px;background:#FBFAF7;color:#9AA0A6;font-size:14px;width:300px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0A6" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span style="flex:1">Ask anything, or find a person…</span><span class="kbd">⌘K</span>
+    </div>
+    <a class="btn ghost sm" href="#" style="color:#5A6068">How this works</a>
+    <div style="width:36px;height:36px;border-radius:999px;background:#17181C;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">MS</div>
+  </div>
+</div>
+<div style="width:1200px;margin:0 auto;padding:56px 0 80px">
+
+  <!-- Greeting + brief -->
+  <div style="display:flex;gap:80px;align-items:flex-start">
+    <div style="width:720px">
+      <div class="meta" style="font-size:14px;color:#5A6068;margin-bottom:12px">Tuesday 9 September</div>
+      <h1 class="serif" style="font-size:44px;margin:0 0 24px;color:#17181C">Good morning, Mark. Five people are worth a message today, and Kofi replied.</h1>
+      <div style="font-size:17px;line-height:1.6;color:#17181C;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:12px;align-items:flex-start"><span class="dot" style="margin-top:11px"></span><span><a href="#">Kofi Kowalski</a> replied to your note about the <a href="#">Staff SRE</a> role yesterday at 17:40. He asked about on-call. <a href="#" style="font-weight:600">Read the reply →</a></span></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span class="dot" style="margin-top:11px"></span><span><a href="#">Elena Andersson</a> took a job eighteen months ago. Her <span class="u">resurface window</span> opens this week; she came second for Senior Backend twice. <a href="#" style="font-weight:600">Say hello →</a></span></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span class="dot" style="margin-top:11px"></span><span>Three strong fits for <a href="#">Staff SRE</a> haven't heard from you in over two months: Chiara, Tomasz and Priya. <a href="#" style="font-weight:600">See the three →</a></span></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span class="dot" style="margin-top:11px;background:#C77A24"></span><span>Dana added 4 people from the <a href="#">Greenhouse export</a> last night. Two look like duplicates of people you already have. <a href="#" style="font-weight:600">Review the merge →</a></span></div>
+      </div>
+    </div>
+    <div class="card" style="width:400px;padding:24px;margin-top:38px">
+      <div class="sec" style="margin-bottom:12px">Your bench this week</div>
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:16px">
+        <div><div class="serif" style="font-size:32px">218</div><div class="meta" style="font-size:13px;color:#5A6068">people, from 6 sources</div></div>
+        <div><div class="serif" style="font-size:32px">14</div><div class="meta" style="font-size:13px;color:#5A6068">strong fits for open roles</div></div>
+        <div><div class="serif" style="font-size:32px;color:#0B6E62">3</div><div class="meta" style="font-size:13px;color:#5A6068">placements from the bench</div></div>
+      </div>
+      <div style="height:1px;background:#E8E4DC;margin:20px 0 16px"></div>
+      <div style="font-size:14px;color:#5A6068;line-height:1.5">Every one of these people already interviewed with you and came close. That is why a message from you gets a reply.</div>
+    </div>
+  </div>
+
+  <!-- Hero: paste a role -->
+  <div class="card" style="margin-top:56px;height:160px;display:flex;align-items:center;padding:0 32px;gap:32px;border-color:#0F9D8A;box-shadow:0 8px 24px -8px rgba(23,24,28,.12)">
+    <div style="width:56px;height:56px;border-radius:12px;background:#E7F4F1;display:flex;align-items:center;justify-content:center;flex:none">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0B6E62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a2 2 0 0 1 2 2v14H7V6a2 2 0 0 1 2-2z"></path><path d="M9 4V3h6v1"></path><path d="M10 11h4M10 15h4"></path></svg>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:20px;font-weight:600;margin-bottom:4px">Have a new role? Paste the job description here.</div>
+      <div class="sec">We read it, then rank everyone on your bench for it in about four seconds. Nothing is sent to anyone.</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;height:56px;padding:0 6px 0 18px;border:1px solid #E8E4DC;border-radius:8px;background:#FBFAF7;width:480px;color:#9AA0A6;font-size:15px">
+      <span style="flex:1">Paste the job description, or a link to it…</span>
+      <a class="btn primary" href="#" style="height:44px">Match my bench</a>
+    </div>
+  </div>
+
+  <!-- Three doors -->
+  <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:36px;margin-top:56px">
+    <a class="card" href="#" style="display:block;padding:28px;color:#17181C">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="name">People</div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9AA0A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+      <div class="sec" style="margin-top:8px;line-height:1.5">218 people who came second, third or close. Sorted by who is worth a message for the role you pick.</div>
+      <div style="display:flex;margin-top:20px"><div class="avatar" style="width:32px;height:32px;font-size:12px">KK</div><div class="avatar" style="width:32px;height:32px;font-size:12px;margin-left:-8px;background:#FBE9D2;color:#C77A24">EA</div><div class="avatar" style="width:32px;height:32px;font-size:12px;margin-left:-8px;background:#E4E9F7;color:#3B4F8C">CA</div><div class="avatar" style="width:32px;height:32px;font-size:12px;margin-left:-8px;background:#F1E4F7;color:#7A3B8C">TO</div><div class="pill" style="margin-left:12px">+214</div></div>
+    </a>
+    <a class="card" href="#" style="display:block;padding:28px;color:#17181C">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="name">Roles</div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9AA0A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+      <div class="sec" style="margin-top:8px;line-height:1.5">4 open roles. Staff SRE has the best shortlist right now: eight people over 80 fit, five you spoke to this year.</div>
+      <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap"><span class="pill wash">Staff SRE · 8 strong</span><span class="pill">Senior Backend · 3</span><span class="pill">Product Designer · 2</span></div>
+    </a>
+    <a class="card" href="#" style="display:block;padding:28px;color:#17181C">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="name">Sources</div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9AA0A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div>
+      <div class="sec" style="margin-top:8px;line-height:1.5">People arrive from Outlook, Greenhouse, LinkedIn captures, Slack and your teammates. Everything lands in one bench.</div>
+      <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap"><span class="pill"><span class="dot"></span>Outlook · synced 6 min ago</span><span class="pill"><span class="dot"></span>Drive folder</span><span class="pill"><span class="dot" style="background:#C77A24"></span>Greenhouse · 2 to review</span></div>
+    </a>
+  </div>
+
+  <!-- Today: 5 cards -->
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:64px;margin-bottom:20px">
+    <h2 class="serif" style="font-size:32px;margin:0">Worth a message today</h2>
+    <div class="sec">Ranked for <a href="#" style="font-weight:600">Staff SRE ▾</a> · <span class="u">how we rank</span></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;position:relative">
+
+    <div class="card" style="display:flex;align-items:center;gap:20px;padding:20px 24px">
+      <div class="avatar">KK</div>
+      <div style="flex:1;min-width:0">
+        <div class="name">Kofi Kowalski <span class="sec" style="font-weight:400;margin-left:8px">Staff SRE at Lattice · 2 yrs</span></div>
+        <div class="story">Came second for Staff SRE in May; lost to an internal hire. Replied yesterday asking about on-call.</div>
+        <div class="row" style="gap:12px;margin-top:6px;font-size:14px;color:#5A6068"><span class="fit u">Strong fit · 94</span><span>·</span><span>replied yesterday</span><span>·</span><span class="pill" style="height:24px;font-size:12px">from Outlook</span></div>
+      </div>
+      <a class="btn primary" href="#">Read reply</a>
+    </div>
+
+    <div class="card" style="display:flex;align-items:center;gap:20px;padding:20px 24px;position:relative">
+      <div class="avatar" style="background:#FBE9D2;color:#C77A24">EA</div>
+      <div style="flex:1;min-width:0">
+        <div class="name">Elena Andersson <span class="sec" style="font-weight:400;margin-left:8px">Senior Backend Engineer at Klarna · 18 mo</span></div>
+        <div class="story">Came second for Senior Backend twice, 2024 and 2025; took a role at Klarna in March last year. Her resurface window opens this week.</div>
+        <div class="row" style="gap:12px;margin-top:6px;font-size:14px;color:#5A6068"><span class="fit u">Strong fit · 88</span><span>·</span><span class="u">spoke 18 months ago</span><span>·</span><span class="pill" style="height:24px;font-size:12px">from Greenhouse</span></div>
+      </div>
+      <a class="btn" href="#">Write a warm note</a>
+      <div class="tip" style="left:440px;top:-96px">
+        <div style="font-weight:600;margin-bottom:2px">Resurface window</div>
+        People who took another job are usually open again after 18 months. We remind you the week that window opens, once.
+      </div>
+    </div>
+
+    <div class="card" style="display:flex;align-items:center;gap:20px;padding:20px 24px">
+      <div class="avatar" style="background:#E4E9F7;color:#3B4F8C">CA</div>
+      <div style="flex:1;min-width:0">
+        <div class="name">Chiara Abara <span class="sec" style="font-weight:400;margin-left:8px">Site Reliability Lead at Wise · 3 yrs</span></div>
+        <div class="story">Final-round for Staff SRE in February; wanted fully remote and the role was hybrid. Staff SRE is now remote-friendly.</div>
+        <div class="row" style="gap:12px;margin-top:6px;font-size:14px;color:#5A6068"><span class="fit u">Strong fit · 91</span><span>·</span><span class="u">spoke 9 weeks ago</span><span>·</span><span class="pill" style="height:24px;font-size:12px">from LinkedIn capture</span></div>
+      </div>
+      <a class="btn" href="#">Write a warm note</a>
+    </div>
+
+    <div class="card" style="display:flex;align-items:center;gap:20px;padding:20px 24px">
+      <div class="avatar" style="background:#F1E4F7;color:#7A3B8C">TO</div>
+      <div style="flex:1;min-width:0">
+        <div class="name">Tomasz Osei <span class="sec" style="font-weight:400;margin-left:8px">Platform Engineer at Monzo · 4 yrs</span></div>
+        <div class="story">Shortlisted for Platform Lead in 2025; comp was 15% above band. Four years at Monzo now, the point where people start listening.</div>
+        <div class="row" style="gap:12px;margin-top:6px;font-size:14px;color:#5A6068"><span class="fit u">Strong fit · 83</span><span>·</span><span class="u">spoke 11 weeks ago</span><span>·</span><span class="pill" style="height:24px;font-size:12px">from Slack export</span></div>
+      </div>
+      <a class="btn" href="#">Write a warm note</a>
+    </div>
+
+    <div class="card" style="display:flex;align-items:center;gap:20px;padding:20px 24px">
+      <div class="avatar" style="background:#E8E4DC;color:#5A6068">PR</div>
+      <div style="flex:1;min-width:0">
+        <div class="name">Priya Raman <span class="sec" style="font-weight:400;margin-left:8px">SRE at Deliveroo · 2 yrs</span></div>
+        <div class="story">Came second for SRE II in 2024; lost on Kubernetes depth. Added by Dana from the hiring-manager link; her old scorecard is attached.</div>
+        <div class="row" style="gap:12px;margin-top:6px;font-size:14px;color:#5A6068"><span class="fit u">Possible fit · 72</span><span>·</span><span class="u">spoke 14 months ago</span><span>·</span><span class="pill" style="height:24px;font-size:12px">added by Dana</span></div>
+      </div>
+      <a class="btn" href="#">Write a warm note</a>
+    </div>
+  </div>
+
+  <div class="row" style="justify-content:space-between;margin-top:24px">
+    <a href="#" class="sec" style="font-weight:600;color:#0B6E62">See all 14 strong fits for Staff SRE →</a>
+    <div class="row" style="gap:8px"><span class="sec">Not today?</span><a class="btn ghost sm" href="#">Snooze the list a week</a></div>
+  </div>
+
+  <!-- How this works strip -->
+  <div class="card" style="margin-top:64px;padding:28px 32px;display:flex;gap:40px;align-items:center;background:#FFFFFF">
+    <div style="width:280px;flex:none">
+      <div class="serif" style="font-size:24px">How this works</div>
+      <div class="sec" style="margin-top:6px;line-height:1.5">Three steps, using Kofi as the example. The full tour takes two minutes.</div>
+      <a class="btn sm" href="#" style="margin-top:16px">Start the tour</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:24px;flex:1">
+      <div><div class="pill wash" style="margin-bottom:10px">1 · Gather</div><div style="font-size:15px;line-height:1.5">Kofi arrived from an Outlook thread in May. We kept his résumé, the interview notes and the reason he lost: an internal hire.</div></div>
+      <div><div class="pill wash" style="margin-bottom:10px">2 · Match</div><div style="font-size:15px;line-height:1.5">A new Staff SRE role landed on Monday. You pasted it; Kofi ranked first with a fit of 94 because of his on-call and Kubernetes depth.</div></div>
+      <div><div class="pill wash" style="margin-bottom:10px">3 · Reach out</div><div style="font-size:15px;line-height:1.5">We drafted a note that mentioned May. You sent it from Outlook with one click. He replied within a day.</div></div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

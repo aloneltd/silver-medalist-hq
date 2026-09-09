@@ -1,0 +1,63 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Home \u00b7 1440",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2400
+    },
+    {
+      "file": "HomeMobile.dc.html",
+      "title": "Home \u00b7 phone 390",
+      "x": 1560,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "People.dc.html",
+      "title": "People",
+      "x": 0,
+      "y": 2560,
+      "w": 1440,
+      "h": 1600
+    },
+    {
+      "file": "Sources.dc.html",
+      "title": "Sources",
+      "x": 1560,
+      "y": 2560,
+      "w": 1440,
+      "h": 2100
+    },
+    {
+      "file": "Profile.dc.html",
+      "title": "Profile \u00b7 Kofi",
+      "x": 0,
+      "y": 4800,
+      "w": 1440,
+      "h": 1600
+    }
+  ],
+  "annotations": [
+    {
+      "id": "direction",
+      "x": 1560,
+      "y": 980,
+      "w": 390,
+      "text": "v3 direction: Paper.\nBright, generous, editorial. One teal accent per region. Sentences instead of chips. Every term (fit, spoke, resurface) has a tooltip; every screen has How this works with Kofi, Elena and Chiara as the example.\n\nWhat changed from v2.1: Home replaces Today. People replaces Bench. Sources is new: drop anything, mailbox scan, Drive folder, Capture button, Slack export, teammates + hiring-manager link + Inbox."
+    },
+    {
+      "id": "open-questions",
+      "x": 1560,
+      "y": 1300,
+      "w": 390,
+      "text": "For Mark to decide:\n1. Team layer now (v3) or next (3.1)? The mockup shows it in.\n2. Keep the Target as a side chart on People, or its own tab?\n3. Serif headlines (Instrument Serif) or all sans?\n4. Anything missing from Sources?"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

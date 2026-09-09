@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap">
+  <style>
+    body{margin:0;background:#FBFAF7;color:#17181C;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+    a{color:#0B6E62;text-decoration:none} a:hover{color:#0F9D8A}
+    .serif{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.015em;line-height:1.1}
+    .nav{display:flex;align-items:center;gap:8px;height:72px;padding:0 120px;border-bottom:1px solid #E8E4DC;background:#FFFFFF}
+    .navlink{padding:8px 12px;border-radius:8px;color:#5A6068;font-size:14px;font-weight:500}
+    .navlink.on{color:#17181C;background:#FBFAF7}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:8px;font-size:15px;font-weight:600;border:1px solid #E8E4DC;background:#FFFFFF;color:#17181C;white-space:nowrap}
+    .btn.primary{background:#0F9D8A;border-color:#0F9D8A;color:#FFFFFF}
+    .btn.sm{height:36px;padding:0 14px;font-size:14px}
+    .btn.ghost{border-color:transparent;background:transparent;color:#5A6068}
+    .card{background:#FFFFFF;border:1px solid #E8E4DC;border-radius:12px;box-shadow:0 1px 2px rgba(23,24,28,.06)}
+    .avatar{width:48px;height:48px;border-radius:999px;background:#E7F4F1;color:#0B6E62;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px;flex:none}
+    .pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:#FBFAF7;border:1px solid #E8E4DC;font-size:12px;color:#5A6068;font-weight:500;white-space:nowrap}
+    .pill.wash{background:#E7F4F1;border-color:#E7F4F1;color:#0B6E62}
+    .meta{font-size:12px;color:#9AA0A6}
+    .sec{font-size:14px;color:#5A6068}
+    .fit{color:#0B6E62;font-weight:600}
+    .dot{width:6px;height:6px;border-radius:999px;background:#0F9D8A;display:inline-block}
+    .name{font-size:20px;font-weight:600;line-height:1.3}
+    .story{font-size:17px;color:#17181C;line-height:1.5}
+    .tip{position:absolute;background:#17181C;color:#FFFFFF;font-size:14px;line-height:1.45;padding:12px 14px;border-radius:8px;width:260px;box-shadow:0 8px 24px -8px rgba(23,24,28,.3)}
+    .tip::after{content:"";position:absolute;left:24px;bottom:-6px;width:12px;height:12px;background:#17181C;transform:rotate(45deg)}
+    .u{text-decoration:underline dotted #9AA0A6;text-underline-offset:4px}
+    .kbd{display:inline-block;font-size:12px;color:#5A6068;border:1px solid #E8E4DC;border-radius:6px;padding:0 6px;line-height:20px;background:#FBFAF7}
+    .row{display:flex;align-items:center}
+  </style>
+</helmet>
+<div style="width:390px;height:844px;background:#FBFAF7;position:relative;font-size:16px;overflow:hidden">
+  <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:#FFFFFF;border-bottom:1px solid #E8E4DC">
+    <div class="row" style="gap:8px;font-weight:600;font-size:15px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B6E62" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4.5"></circle><circle cx="12" cy="12" r="1"></circle></svg>Silver Medalist</div>
+    <div class="row" style="gap:12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A6068" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><div style="width:28px;height:28px;border-radius:999px;background:#17181C;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">MS</div></div>
+  </div>
+  <div style="position:absolute;top:52px;bottom:84px;left:0;right:0;overflow-y:auto;padding:24px 20px 24px">
+    <div class="meta" style="font-size:13px;color:#5A6068">Tuesday 9 September</div>
+    <div class="serif" style="font-size:28px;margin-top:6px">Good morning, Mark. Five people are worth a message, and Kofi replied.</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;font-size:15px;line-height:1.5">
+      <div style="display:flex;gap:10px"><span class="dot" style="margin-top:9px"></span><span><a href="#">Kofi</a> replied yesterday about Staff SRE. <a href="#" style="font-weight:600">Read →</a></span></div>
+      <div style="display:flex;gap:10px"><span class="dot" style="margin-top:9px"></span><span><a href="#">Elena's</a> resurface window opens this week. <a href="#" style="font-weight:600">Say hello →</a></span></div>
+      <div style="display:flex;gap:10px"><span class="dot" style="margin-top:9px;background:#C77A24"></span><span>Dana added 4 people; 2 may be duplicates. <a href="#" style="font-weight:600">Review →</a></span></div>
+    </div>
+
+    <div class="card" style="margin-top:20px;padding:16px;border-color:#0F9D8A">
+      <div style="font-weight:600;font-size:16px">New role? Paste it here.</div>
+      <div class="row" style="margin-top:10px;height:44px;border:1px solid #E8E4DC;border-radius:8px;background:#FBFAF7;padding:0 4px 0 12px;color:#9AA0A6;font-size:14px"><span style="flex:1">Job description or link…</span><a class="btn primary sm" href="#" style="height:36px">Match</a></div>
+    </div>
+
+    <div class="row" style="justify-content:space-between;margin-top:28px"><div class="serif" style="font-size:24px">Worth a message</div><span class="sec" style="font-size:13px">for <a href="#" style="font-weight:600">Staff SRE ▾</a></span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div class="row" style="gap:12px"><div class="avatar" style="width:40px;height:40px;font-size:14px">KK</div><div style="flex:1"><div style="font-weight:600;font-size:17px;line-height:1.3">Kofi Kowalski</div><div class="sec" style="font-size:13px">Staff SRE at Lattice</div></div></div>
+        <div style="font-size:15px;line-height:1.45">Second for Staff SRE in May; lost to an internal hire. Replied yesterday about on-call.</div>
+        <div class="row" style="gap:8px;font-size:13px;color:#5A6068"><span class="fit">Strong fit · 94</span><span>·</span><span>replied yesterday</span></div>
+        <a class="btn primary" href="#" style="height:44px">Read reply</a>
+      </div>
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div class="row" style="gap:12px"><div class="avatar" style="width:40px;height:40px;font-size:14px;background:#FBE9D2;color:#C77A24">EA</div><div style="flex:1"><div style="font-weight:600;font-size:17px;line-height:1.3">Elena Andersson</div><div class="sec" style="font-size:13px">Senior Backend at Klarna</div></div></div>
+        <div style="font-size:15px;line-height:1.45">Second for Senior Backend twice. Took a role 18 months ago; window opens this week.</div>
+        <div class="row" style="gap:8px;font-size:13px;color:#5A6068"><span class="fit">Strong fit · 88</span><span>·</span><span>spoke 18 months ago</span></div>
+        <a class="btn" href="#" style="height:44px">Write a warm note</a>
+      </div>
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div class="row" style="gap:12px"><div class="avatar" style="width:40px;height:40px;font-size:14px;background:#E4E9F7;color:#3B4F8C">CA</div><div style="flex:1"><div style="font-weight:600;font-size:17px;line-height:1.3">Chiara Abara</div><div class="sec" style="font-size:13px">SRE Lead at Wise</div></div></div>
+        <div style="font-size:15px;line-height:1.45">Final round in February; wanted remote. This role is remote-friendly now.</div>
+        <div class="row" style="gap:8px;font-size:13px;color:#5A6068"><span class="fit">Strong fit · 91</span><span>·</span><span>spoke 9 weeks ago</span></div>
+        <a class="btn" href="#" style="height:44px">Write a warm note</a>
+      </div>
+    </div>
+  </div>
+  <!-- sticky bottom bar -->
+  <div style="position:absolute;left:0;right:0;bottom:0;height:84px;background:#FFFFFF;border-top:1px solid #E8E4DC;display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));padding:10px 8px 22px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#0B6E62"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B6E62" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg>Home</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#5A6068"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A6068" stroke-width="2"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M16 15a5 5 0 0 1 5.5 5"></path></svg>People</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#5A6068"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A6068" stroke-width="2" stroke-linejoin="round"><path d="M9 4h6a2 2 0 0 1 2 2v14H7V6a2 2 0 0 1 2-2z"></path><path d="M10 11h4M10 15h4"></path></svg>Roles</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#5A6068"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A6068" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg>Sources</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
