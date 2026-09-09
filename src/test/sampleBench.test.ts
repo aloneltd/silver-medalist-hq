@@ -161,3 +161,33 @@ describe('sample bench: internal consistency', () => {
     expect(a.matches.map(m => m.score)).toEqual(b.matches.map(m => m.score));
   });
 });
+
+// Regression: `processes` is indexed `&[candidateId+roleId]` (unique). A duplicate pair makes
+// Dexie abort the entire seeding transaction, and the app boots with a completely empty bench
+// while only warning in the console — the failure mode is silent and total. This exact thing
+// happened once, caused by an unrelated change shifting the seeded PRNG sequence, so the
+// invariant is asserted here rather than trusted to luck.
+describe('sample bench seeding invariants', () => {
+  it('never emits two processes for the same candidate and role', () => {
+    const { processes } = buildSampleBench();
+    const seen = new Set<string>();
+    const dupes: string[] = [];
+    for (const p of processes) {
+      const key = `${p.candidateId}|${p.roleId}`;
+      if (seen.has(key)) dupes.push(key);
+      seen.add(key);
+    }
+    expect(dupes).toEqual([]);
+  });
+
+  it('still produces exactly five placements', () => {
+    const { processes } = buildSampleBench();
+    expect(processes.filter(p => p.finishedAs === 'placed')).toHaveLength(5);
+  });
+
+  it('gives every person a source, so no card renders a blank badge', () => {
+    const { candidates } = buildSampleBench();
+    expect(candidates.every(c => !!c.source?.kind && !!c.source.label)).toBe(true);
+    expect(new Set(candidates.map(c => c.source!.kind)).size).toBe(6);
+  });
+});

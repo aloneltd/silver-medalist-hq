@@ -339,15 +339,27 @@ button.p-pill.p-on { background: var(--p-wash); border-color: var(--p-accent); c
   .p-nav { padding: 0 20px; }
 }
 
+/* The help button is a label on a desktop and an icon on a phone — never absent. */
+.p-help-icon { display: none; }
+
 @media (max-width: 860px) {
   :root { --p-gutter: 20px; }
+  .p-brand-text { display: none; }
+  .p-brand { margin-right: 8px; }
+  .p-nav { gap: 6px; }
+  .p-nav-right { flex: 1; min-width: 0; gap: 6px; }
+  .p-ask { width: auto; flex: 1; min-width: 0; padding: 0 10px; }
+  .p-ask-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p-ask-kbd { display: none; }
+  .p-help-label { display: none; }
+  .p-help-icon { display: block; }
+  .p-help-btn { width: 40px; padding: 0; flex: none; }
   .p-container { padding: 32px var(--p-gutter) 104px; }
   .p-h1, .p-greeting { font-size: 28px; }
   .p-h2 { font-size: 24px; }
   .p-grid-2, .p-grid-3 { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .p-nav { height: 60px; }
   .p-nav .p-navlink { display: none; }
-  .p-ask { width: auto; flex: 1; }
   .p-drop { flex-direction: column; align-items: stretch; gap: 20px; padding: 24px; text-align: left; }
   .p-person { flex-wrap: wrap; padding: 16px 18px; gap: 14px; }
   .p-person > .p-btn { width: 100%; }

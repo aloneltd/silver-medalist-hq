@@ -357,16 +357,8 @@ function buildCandidates(now: string, rand: () => number, roles: Role[]): Candid
     // Stride through the spread rather than taking it in order, so the bench is mixed and a
     // filter by source never returns one contiguous block of the list.
     const spread = SOURCE_SPREAD[(i * 7 + 3) % SOURCE_SPREAD.length];
-    const sourceDate = h.daysAgo(tenureMonthsAgo * 30 + h.int(0, 30));
-    const source: PersonSource = {
-      kind: spread.kind,
-      label: spread.label,
-      addedBy: spread.addedBy,
-      at: sourceDate,
-      url: spread.kind === 'ats' ? 'greenhouse-candidates-sept.csv' : undefined,
-    };
 
-    candidates.push({
+    const person: Candidate = {
       id: `cand_${String(i + 1).padStart(3, '0')}`,
       name,
       email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}@example-mail.com`,
@@ -386,15 +378,29 @@ function buildCandidates(now: string, rand: () => number, roles: Role[]): Candid
       statusReason,
       snoozeUntil,
       warmthAt: h.daysAgo(warmthDays),
-      sourceDate,
-      source,
-      linkedin: source.kind === 'capture' || source.kind === 'slack'
-        ? `https://www.linkedin.com/in/${name.toLowerCase().replace(/[^a-z]+/g, '-')}`
-        : undefined,
+      sourceDate: h.daysAgo(tenureMonthsAgo * 30 + h.int(0, 30)),
       notes: [],
       createdAt: now,
       updatedAt: now,
-    });
+    };
+
+    // Attached after the record is built, so this whole v3 addition consumes no random
+    // numbers and the bench stays byte-identical to the one v2.1 seeds. (It did not, the
+    // first time: pulling one h.int() earlier shifted every later draw, which quietly moved
+    // the placements onto roles their candidates already had a process for and made the
+    // seeding transaction abort. Same seed must mean same bench.)
+    person.source = {
+      kind: spread.kind,
+      label: spread.label,
+      addedBy: spread.addedBy,
+      at: person.sourceDate,
+      url: spread.kind === 'ats' ? 'greenhouse-candidates-sept.csv' : undefined,
+    };
+    if (spread.kind === 'capture' || spread.kind === 'slack') {
+      person.linkedin = `https://www.linkedin.com/in/${name.toLowerCase().replace(/[^a-z]+/g, '-')}`;
+    }
+
+    candidates.push(person);
   }
   return candidates;
 }
@@ -460,14 +466,26 @@ function buildProcesses(candidates: Candidate[], roles: Role[], now: string, ran
   // Exactly five placements, all on people whose status says they took a role — so the ROI
   // number and the candidate record tell the same story.
   const placedPeople = candidates.filter(c => c.status === 'took_role').slice(0, 5);
+  const taken = new Set(processes.map(p => `${p.candidateId}|${p.roleId}`));
   placedPeople.forEach((candidate, i) => {
-    const role = roles[i % roles.length];
+    // `processes` is indexed `&[candidateId+roleId]` — UNIQUE. Appending a placement for a
+    // pair this person already has aborts the whole seeding transaction and the app boots
+    // with an empty bench. So: take the first role they have no process for, and if they
+    // somehow have all of them, promote an existing one to `placed` instead of adding a row.
+    const free = roles.find(r => !taken.has(`${candidate.id}|${r.id}`)) ?? null;
+    const date = new Date(Date.now() - (60 + i * 47) * 86_400_000).toISOString();
+    if (!free) {
+      const existing = processes.find(p => p.candidateId === candidate.id);
+      if (existing) { existing.finishedAs = 'placed'; existing.reason = LOST_REASONS.placed[0]; existing.date = date; }
+      return;
+    }
+    taken.add(`${candidate.id}|${free.id}`);
     counter++;
     processes.push({
       id: `proc_${String(counter).padStart(4, '0')}`,
       candidateId: candidate.id,
-      roleId: role.id,
-      date: new Date(Date.now() - (60 + i * 47) * 86_400_000).toISOString(),
+      roleId: free.id,
+      date,
       finishedAs: 'placed',
       reason: LOST_REASONS.placed[0],
       createdAt: now,

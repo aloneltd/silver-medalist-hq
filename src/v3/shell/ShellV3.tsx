@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, Users, Briefcase, Inbox as InboxIcon, Search, Moon, Sun, Target } from 'lucide-react';
+import { Home, Users, Briefcase, Inbox as InboxIcon, Search, Moon, Sun, Target, HelpCircle } from 'lucide-react';
 import { useAppUI } from '../../app/store';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDossierLink } from '../../app/useDossierLink';
@@ -119,7 +119,7 @@ export function ShellV3() {
       <a className="p-skip" href="#main">Skip to content</a>
 
       <header className="p-nav">
-        <Link className="p-brand" to="/"><BrandMark /><span>Silver Medalist</span></Link>
+        <Link className="p-brand" to="/" aria-label="Silver Medalist, home"><BrandMark /><span className="p-brand-text">Silver Medalist</span></Link>
         {NAV.map(item => (
           <NavLink
             key={item.to}
@@ -134,11 +134,14 @@ export function ShellV3() {
         <div className="p-nav-right">
           <button type="button" className="p-ask" onClick={() => setPaletteOpen(true)} data-tour="ask">
             <Search size={16} aria-hidden="true" />
-            <span>Ask anything, or find a person…</span>
-            <span className="p-kbd">⌘K</span>
+            <span className="p-ask-label">Ask anything, or find a person…</span>
+            <span className="p-kbd p-ask-kbd">⌘K</span>
           </button>
-          <button type="button" className="p-btn p-btn-ghost p-btn-sm" onClick={openHelp} data-tour="how">
-            How this works
+          {/* The designer seat's rule: this link never hides. On a phone it becomes an icon
+              button rather than disappearing — same target, same aria name. */}
+          <button type="button" className="p-btn p-btn-ghost p-btn-sm p-help-btn" onClick={openHelp} data-tour="how" aria-label="How this works">
+            <HelpCircle size={16} aria-hidden="true" className="p-help-icon" />
+            <span className="p-help-label">How this works</span>
           </button>
           <MeMenu />
         </div>
