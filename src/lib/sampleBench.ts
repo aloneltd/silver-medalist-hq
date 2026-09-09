@@ -1,6 +1,6 @@
 import type {
   Candidate, Role, Process, Seniority, CandidateStatus, FinishedAs, CompSnapshot,
-  Match, MatchSubScores, Activity, Sequence, BoardStage,
+  Match, MatchSubScores, Activity, Sequence, BoardStage, SourceKind, PersonSource,
 } from '../types';
 
 /**
@@ -253,6 +253,23 @@ const SENIORITY_FOR_LEVEL: Record<string, Seniority> = {
  * a second. That is what makes a synced role produce a shortlist a recruiter would recognise:
  * a handful of genuinely strong fits, a tail of plausible ones, and the rest clearly not.
  */
+/**
+ * v3 — where the sample people came from. Six sources with believable shares, so the Sources
+ * cards, the "from Greenhouse" badges and the "218 people, from 6 sources" line are all true
+ * of the seeded bench rather than decoration. Deterministic like everything else here.
+ */
+const SOURCE_PLAN: { kind: SourceKind; label: string; count: number; addedBy?: string }[] = [
+  { kind: 'outlook', label: 'Outlook', count: 16 },
+  { kind: 'ats', label: 'Greenhouse export', count: 14 },
+  { kind: 'drive', label: 'Drive folder', count: 10 },
+  { kind: 'capture', label: 'LinkedIn capture', count: 8 },
+  { kind: 'teammate', label: 'added by Dana', count: 7, addedBy: 'Dana' },
+  { kind: 'slack', label: 'Slack export', count: 5 },
+];
+
+const SOURCE_SPREAD: { kind: SourceKind; label: string; addedBy?: string }[] =
+  SOURCE_PLAN.flatMap(p => Array.from({ length: p.count }, () => ({ kind: p.kind, label: p.label, addedBy: p.addedBy })));
+
 function buildCandidates(now: string, rand: () => number, roles: Role[]): Candidate[] {
   const h = makeHelpers(rand);
   const statuses: CandidateStatus[] = STATUS_PLAN.flatMap(p => Array(p.count).fill(p.status));
@@ -337,6 +354,18 @@ function buildCandidates(now: string, rand: () => number, roles: Role[]): Candid
       statusReason = 'Requested erasure / withdrew consent to be contacted';
     }
 
+    // Stride through the spread rather than taking it in order, so the bench is mixed and a
+    // filter by source never returns one contiguous block of the list.
+    const spread = SOURCE_SPREAD[(i * 7 + 3) % SOURCE_SPREAD.length];
+    const sourceDate = h.daysAgo(tenureMonthsAgo * 30 + h.int(0, 30));
+    const source: PersonSource = {
+      kind: spread.kind,
+      label: spread.label,
+      addedBy: spread.addedBy,
+      at: sourceDate,
+      url: spread.kind === 'ats' ? 'greenhouse-candidates-sept.csv' : undefined,
+    };
+
     candidates.push({
       id: `cand_${String(i + 1).padStart(3, '0')}`,
       name,
@@ -357,7 +386,11 @@ function buildCandidates(now: string, rand: () => number, roles: Role[]): Candid
       statusReason,
       snoozeUntil,
       warmthAt: h.daysAgo(warmthDays),
-      sourceDate: h.daysAgo(tenureMonthsAgo * 30 + h.int(0, 30)),
+      sourceDate,
+      source,
+      linkedin: source.kind === 'capture' || source.kind === 'slack'
+        ? `https://www.linkedin.com/in/${name.toLowerCase().replace(/[^a-z]+/g, '-')}`
+        : undefined,
       notes: [],
       createdAt: now,
       updatedAt: now,
