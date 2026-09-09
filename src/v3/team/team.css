@@ -1,0 +1,91 @@
+/**
+ * Team + Inbox + the public add-to-bench form. Built entirely from paper.css tokens
+ * (var(--p-*)) so Graphite dark mode needs nothing extra here — only p- classes plus this
+ * file, never a Tailwind class built from a template literal.
+ */
+
+/* ------------------------------------------------------------------------------- banner */
+
+.smteam-banner {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--p-wash); border: 1px solid var(--p-wash); border-radius: var(--p-r-card);
+  padding: 14px 18px; font-size: 14px; line-height: 1.5; color: var(--p-accent-ink);
+  margin-bottom: 24px;
+}
+.smteam-banner strong { color: var(--p-ink); }
+
+/* -------------------------------------------------------------------------- members table */
+
+.smteam-table { width: 100%; border-collapse: collapse; }
+.smteam-table th {
+  text-align: left; font-size: 12px; font-weight: 600; color: var(--p-faint);
+  text-transform: uppercase; letter-spacing: .03em; padding: 0 12px 10px; border-bottom: 1px solid var(--p-line);
+}
+.smteam-table td {
+  padding: 14px 12px; border-bottom: 1px solid var(--p-line); font-size: 14px; vertical-align: top;
+}
+.smteam-table tr:last-child td { border-bottom: 0; }
+.smteam-who { display: flex; align-items: center; gap: 12px; }
+.smteam-who-name { font-weight: 600; color: var(--p-ink); }
+.smteam-who-email { color: var(--p-ink-2); font-size: 13px; }
+.smteam-can { color: var(--p-ink-2); font-size: 13px; line-height: 1.45; max-width: 320px; }
+.smteam-role-select { min-width: 132px; }
+.smteam-owner-badge { font-weight: 600; color: var(--p-ink); }
+
+/* ------------------------------------------------------------------------------ link card */
+
+.smteam-linkbox {
+  display: flex; align-items: center; gap: 8px; margin-top: 16px; height: 44px;
+  border: 1px solid var(--p-line); border-radius: var(--p-r-ctl); background: var(--p-bg);
+  padding: 0 6px 0 14px; font-size: 14px; color: var(--p-ink-2);
+}
+.smteam-linkbox span {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--p-mono); font-size: 13px;
+}
+.smteam-link-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* -------------------------------------------------------------------------- activity strip */
+
+.smteam-activity { display: flex; flex-direction: column; gap: 10px; }
+.smteam-activity-row { font-size: 14px; line-height: 1.5; color: var(--p-ink-2); }
+.smteam-activity-row strong { color: var(--p-ink); }
+
+/* ---------------------------------------------------------------------------------- inbox */
+
+.smteam-inbox-row {
+  display: flex; align-items: flex-start; gap: 14px; padding: 16px 4px;
+  border-bottom: 1px solid var(--p-line);
+}
+.smteam-inbox-row:last-child { border-bottom: 0; }
+.smteam-inbox-row.smteam-focused { background: var(--p-wash); border-radius: var(--p-r-card); }
+.smteam-inbox-body { flex: 1; min-width: 0; }
+.smteam-inbox-meta { font-size: 13px; color: var(--p-ink-2); margin-top: 2px; }
+.smteam-inbox-note { font-size: 14px; color: var(--p-ink); margin-top: 6px; line-height: 1.5; }
+.smteam-inbox-warn {
+  margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+  color: var(--p-amber); background: var(--p-amber-wash); border-radius: var(--p-r-ctl); padding: 4px 10px;
+}
+.smteam-inbox-actions { display: flex; gap: 8px; flex: none; align-items: center; }
+.smteam-kbd-hint { font-size: 12px; color: var(--p-faint); margin-top: 4px; }
+
+/* -------------------------------------------------------------------------- public form */
+
+.smteam-public {
+  min-height: 100dvh; background: var(--p-bg); display: flex; justify-content: center;
+}
+.smteam-public-inner { width: 100%; max-width: 560px; padding: 40px 20px 64px; }
+.smteam-public-field { margin-top: 20px; }
+.smteam-public-actions { margin-top: 28px; }
+.smteam-public-actions .p-btn { width: 100%; height: 52px; font-size: 16px; }
+.smteam-public-note {
+  font-size: 13px; color: var(--p-ink-2); line-height: 1.5; margin-top: 10px; text-align: center;
+}
+.smteam-confirm {
+  text-align: center; padding: 56px 20px;
+}
+
+@media (max-width: 480px) {
+  .smteam-public-inner { padding: 28px 16px 48px; }
+  .smteam-table th:nth-child(4), .smteam-table td:nth-child(4) { display: none; }
+}
