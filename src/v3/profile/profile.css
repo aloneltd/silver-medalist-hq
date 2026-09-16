@@ -1,0 +1,47 @@
+/**
+ * Silver Medalist HQ v3 — Profile-only styles.
+ *
+ * Everything here is additive to the p-* tokens in src/v3/paper.css (same colours, radii,
+ * spacing scale) — this file only carries the handful of layout shapes the shared system has
+ * no reason to own: the story/activity timeline, the pull-quote, the fit sub-score bars, the
+ * off-limits banner and the lookalike row. No new palette, no new radius.
+ */
+
+.pf-timeline { display: flex; flex-direction: column; }
+.pf-timeline-row { display: flex; gap: 20px; }
+.pf-timeline-when { width: 100px; flex: none; font-size: 14px; color: var(--p-ink-2); padding-top: 1px; }
+.pf-timeline-line {
+  flex: 1; min-width: 0; padding-bottom: 22px; padding-left: 20px;
+  border-left: 1px solid var(--p-line); position: relative;
+}
+.pf-timeline-row:last-child .pf-timeline-line { padding-bottom: 0; border-left-color: transparent; }
+.pf-timeline-dot {
+  position: absolute; left: -4.5px; top: 6px; width: 8px; height: 8px;
+  border-radius: 999px; background: var(--p-accent);
+}
+.pf-timeline-dot-muted { background: var(--p-faint); }
+
+.pf-quote {
+  border-left: 3px solid var(--p-wash); padding: 2px 0 2px 16px; margin: 10px 0;
+  font-size: 17px; line-height: 1.5; color: var(--p-ink); font-style: italic;
+}
+
+.pf-bar-track { height: 6px; background: var(--p-line); border-radius: 999px; margin-top: 8px; overflow: hidden; }
+.pf-bar-fill { height: 6px; background: var(--p-accent); border-radius: 999px; }
+
+.pf-menu-wrap { position: relative; }
+
+.pf-lookalike-row {
+  display: flex; align-items: flex-start; gap: 12px; text-decoration: none; color: inherit;
+  padding: 8px; margin: -8px; border-radius: var(--p-r-ctl);
+}
+.pf-lookalike-row:hover { background: var(--p-bg); }
+.pf-lookalike-row:hover .pf-lookalike-name { color: var(--p-accent-ink); }
+.pf-lookalike-name { font-weight: 600; color: var(--p-ink); }
+
+.pf-header-actions { width: 220px; flex: none; }
+
+@media (max-width: 860px) {
+  .pf-header-actions { width: 100%; }
+  .pf-timeline-when { width: 76px; font-size: 13px; }
+}
