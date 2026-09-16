@@ -44,7 +44,7 @@ const BOARD_STYLE = `
 `;
 
 export function BoardRoute() {
-  useHelpKey('roles');
+  useHelpKey('board');
   const { selectedRoleId, selectedRole } = useAppUI();
   const { openCandidate } = useDossierLink();
 

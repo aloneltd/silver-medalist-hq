@@ -14,7 +14,7 @@ export interface HelpDoc {
   look?: ReactNode;
 }
 
-export type HelpKey = 'home' | 'people' | 'roles' | 'sources' | 'team' | 'profile' | 'inbox' | 'connections';
+export type HelpKey = 'home' | 'people' | 'roles' | 'board' | 'sources' | 'team' | 'profile' | 'inbox' | 'connections';
 
 export const HELP: Record<HelpKey, HelpDoc> = {
   home: {
@@ -45,6 +45,16 @@ export const HELP: Record<HelpKey, HelpDoc> = {
       { label: '2 · Match', body: <>Everyone on the bench is scored against it in waves of twelve, so the first names appear in about a second.</> },
       { label: '3 · Re-match later', body: <>Nothing is frozen. Re-match after a new import and the new people slot straight into the same ranking.</> },
     ],
+  },
+  board: {
+    title: 'How the board works',
+    intro: 'Once you have written to someone, the board is where that conversation lives. One column per stage, left to right, in the order things actually happen.',
+    steps: [
+      { label: 'Move a card', body: <>Drag it, or focus it and use the arrow keys. Every move asks you for a one-line reason first, so six weeks later you still know why Chiara stopped at Interviewing.</> },
+      { label: 'Amber means quiet', body: <>A card between Reached out and Offer that has not moved in a fortnight turns amber. Warm never does — somebody sitting on the bench is not stalled, they are just on the bench.</> },
+      { label: 'Placed closes the loop', body: <>Dropping a card on Placed is what feeds the one honest number on Home: people hired off this bench.</> },
+    ],
+    look: <>Kofi is in Replied. He answered the May note within a day, which is the whole argument for keeping a bench.</>,
   },
   sources: {
     title: 'How people get here',

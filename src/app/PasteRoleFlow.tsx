@@ -75,7 +75,10 @@ export function PasteRoleFlow() {
     await dataService.put('roles', role);
     setSelectedRoleId(role.id);
     close();
-    navigate('/bench');
+    // v3 renamed the bench to People and there is no /bench route any more — leaving it here
+    // sent every "Match this role" straight into the catch-all redirect back to Home, so the
+    // freshly-matched list was never the thing you landed on.
+    navigate('/people');
     // The button says "Create role & sync the bench" — so it syncs. The bench fills wave by
     // wave on the screen the user just landed on; runSync raises its own toast when it lands.
     void runSync(role.id);

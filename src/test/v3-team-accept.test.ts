@@ -1,13 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '../db/schema';
 import { ulid } from '../lib/ulid';
-import { acceptSubmission, rejectSubmission, sourceForSubmission, ENGINE_NOT_READY_MESSAGE } from '../v3/team/engineBridge';
 import type { Submission } from '../types';
 
-// This file deliberately does NOT mock src/v3/import — it is still `NOT_IMPLEMENTED` in this
-// tree (owned by another builder), and the whole point of engineBridge.ts is that its calls
-// throwing must never blank the screen or reject unhandled. See v3-team-accept-success.test.ts
-// for the accepted-and-succeeds path with the engine mocked.
+// The engine is wired now (it used to be NOT_IMPLEMENTED in this tree, and this file used to
+// lean on that to get a failure for free). The invariant engineBridge.ts actually exists to
+// hold is the one tested here, and it outlives that: when the engine throws — a corrupt draft,
+// a write that loses a race with a sync — the Inbox shows one honest sentence and the
+// submission is left exactly where it was, never half-accepted. So the throw is now forced
+// explicitly. See v3-team-accept-success.test.ts for the succeeds path.
+vi.mock('../v3/import', () => ({
+  stagePerson: vi.fn(async () => { throw new Error('engine exploded'); }),
+  commitStaged: vi.fn(async () => { throw new Error('engine exploded'); }),
+}));
+
+const { acceptSubmission, rejectSubmission, sourceForSubmission, ENGINE_FAILED_MESSAGE } =
+  await import('../v3/team/engineBridge');
 
 function makeSubmission(overrides: Partial<Submission> = {}): Submission {
   return {
@@ -45,7 +53,7 @@ describe('sourceForSubmission — the badge a person gets on accept', () => {
   });
 });
 
-describe('acceptSubmission — engine not implemented yet (real module, honest failure)', () => {
+describe('acceptSubmission — the engine throws (honest failure, bench untouched)', () => {
   beforeEach(async () => {
     await db.submissions.clear();
   });
@@ -55,7 +63,7 @@ describe('acceptSubmission — engine not implemented yet (real module, honest f
     await db.submissions.put(sub);
     const outcome = await acceptSubmission(sub, 'You');
     expect(outcome.ok).toBe(false);
-    expect(outcome.message).toBe(ENGINE_NOT_READY_MESSAGE);
+    expect(outcome.message).toBe(ENGINE_FAILED_MESSAGE);
   });
 
   it('never touches the submission state when the engine call fails', async () => {

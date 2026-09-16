@@ -1,16 +1,16 @@
 /**
- * The Inbox's only door into the import engine. `src/v3/import/index.ts` is owned by another
- * builder and currently throws `NOT_IMPLEMENTED` for every export — that is expected, not a
- * bug, until that work lands. Every call here is wrapped so a thrown engine error becomes one
- * honest sentence in the UI, never a blank screen or an unhandled rejection.
+ * The Inbox's only door into the import engine (`src/v3/import/index.ts`, now wired). Every
+ * call here stays wrapped so a thrown engine error — a corrupt draft, a DB write that loses a
+ * race with a sync — becomes one honest sentence in the UI, never a blank screen or an
+ * unhandled rejection, and never a half-accepted submission.
  */
 import { stagePerson, commitStaged } from '../import';
 import { db } from '../../db/schema';
 import type { PersonSource, Submission, SourceKind } from '../../types';
 
-export const ENGINE_NOT_READY_MESSAGE =
-  "The import engine isn't wired up yet, so accepting can't run the duplicate check safely. " +
-  "This person is still waiting in the Inbox — try Accept again once the import engine is connected.";
+export const ENGINE_FAILED_MESSAGE =
+  "Something went wrong running the duplicate check, so nothing was added to the bench. " +
+  "This person is still waiting in the Inbox — try Accept again.";
 
 const VIA_LABEL: Record<Submission['via'], string> = {
   link: 'the add-to-bench link',
@@ -47,12 +47,12 @@ export async function acceptSubmission(sub: Submission, actor: string): Promise<
   try {
     staged = await stagePerson(sub.draft, source);
   } catch {
-    return { ok: false, message: ENGINE_NOT_READY_MESSAGE };
+    return { ok: false, message: ENGINE_FAILED_MESSAGE };
   }
   try {
     await commitStaged([staged], source, { actor, label: 'Inbox accept', kind: source.kind });
   } catch {
-    return { ok: false, message: ENGINE_NOT_READY_MESSAGE };
+    return { ok: false, message: ENGINE_FAILED_MESSAGE };
   }
   await db.submissions.update(sub.id, { state: 'accepted' });
   return { ok: true, message: `${sub.draft.name} is on the bench, added by ${sub.addedBy || 'the Inbox'}.` };

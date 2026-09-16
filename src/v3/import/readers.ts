@@ -52,12 +52,21 @@ export async function readPdfText(data: ArrayBuffer, maxPages = 12): Promise<Pdf
   // The LEGACY build on purpose: the modern one reaches for DOMMatrix the moment it is
   // evaluated, which is fine in a browser and fatal anywhere else. Legacy works in both.
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  try {
-    const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
-    pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-  } catch {
-    // No worker asset (a test runner, or a host that blocks it) — pdf.js falls back to the
-    // in-thread fake worker below, which is slower but works.
+  // Only hand pdf.js a worker script where a Worker can actually be constructed. Under Vite a
+  // bare `?url` import RESOLVES in the test runner too, but to a dev-server path
+  // (/node_modules/...) that no Node resolver can load — and setting workerSrc to it does not
+  // fall back, it makes pdf.js fail setting up its own in-thread fake worker, so every PDF
+  // read threw and the vision path silently ate CVs that had a perfectly good text layer.
+  // `Worker` is defined in the browser (where the `?url` asset is real and hashed) and
+  // undefined in jsdom, which is exactly the line we want.
+  if (typeof Worker !== 'undefined') {
+    try {
+      const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
+      pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+    } catch {
+      // No worker asset (a host that blocks it) — pdf.js falls back to the in-thread fake
+      // worker below, which is slower but works.
+    }
   }
 
   const doc = await pdfjs.getDocument({
