@@ -97,12 +97,21 @@ export function ShellV3() {
 
   // The tour runs itself on a first visit — the one interruption a stranger forgives, and the
   // fastest way to the "within 10 seconds you know what this is" bar in DESIGN-v3.
+  //
+  // Only when that first visit LANDS on Home, though. The tour's first stop lives at '/', so
+  // auto-starting it on any other route navigated the visitor away from the thing they opened:
+  // every shared deep link — a profile, the People list, the Board — bounced to Home about a
+  // second after it rendered, which read as the link being broken. A deep link is someone
+  // arriving with a purpose; the tour stays available in the menu instead of overriding it.
+  const landedOn = useRef(location.pathname);
   useEffect(() => {
+    if (landedOn.current !== '/') return;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     dataService.getSetting(V3_SETTINGS_KEYS.tourDone, false).then(done => {
-      if (!cancelled && !done) setTimeout(() => startTour(), 900);
+      if (!cancelled && !done) timer = setTimeout(() => startTour(), 900);
     }).catch(() => {});
-    return () => { cancelled = true; };
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
