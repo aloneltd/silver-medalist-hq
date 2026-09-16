@@ -1,0 +1,134 @@
+/**
+ * people.css — owned by builder B3. Everything here is genuinely new: paper.css (the shared
+ * system) has no opinion on the Target's SVG, the list table, the paste-a-role hero's exact
+ * proportions, or Home's two-column top row. Imported by Home.tsx and People.tsx alike, since
+ * both screens share the greeting/brief vocabulary and the person-row facts row.
+ *
+ * Same law as paper.css: static class names only, never a template-literal class.
+ */
+
+/* -------------------------------------------------------------------- inline text buttons */
+
+/* A name or "N more" acting as a link inside a sentence — used by the Daily Brief and the
+ * Target's "Open"/"Clear" links. Never the .p-term dotted-underline treatment: that is
+ * reserved for a term with a definition, this is just a link that happens to be a <button>. */
+.p-inline-link {
+  background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--p-accent-ink);
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.p-inline-link:hover { color: var(--p-accent); }
+.p-inline-link:focus-visible { outline: 2px solid var(--p-accent); outline-offset: 2px; border-radius: 3px; }
+
+.p-name-link {
+  background: none; border: 0; padding: 0; margin: 0; font: inherit; font-size: 20px; font-weight: 600;
+  line-height: 1.3; color: var(--p-ink); cursor: pointer; text-align: left;
+}
+.p-name-link:hover { color: var(--p-accent-ink); }
+.p-name-link:focus-visible { outline: 2px solid var(--p-accent); outline-offset: 2px; border-radius: 3px; }
+
+/* Keyboard-active row on People (↑/↓) — an outline, not a background, so it reads on every
+ * status colour including the muted/off-limits rows. */
+.p-person-active { outline: 2px solid var(--p-accent); outline-offset: -1px; border-color: var(--p-accent); }
+
+/* ------------------------------------------------------------------------------- Home: top */
+
+.p-home-top { display: flex; gap: 80px; align-items: flex-start; }
+.p-home-brief { flex: 1 1 480px; min-width: 0; max-width: 720px; }
+.p-home-stats { flex: 0 0 340px; width: 340px; max-width: 100%; margin-top: 38px; }
+.p-brief-row { display: flex; gap: 12px; align-items: flex-start; }
+.p-brief-row + .p-brief-row { margin-top: 10px; }
+.p-brief-row .p-dot { margin-top: 11px; }
+
+@media (max-width: 980px) {
+  .p-home-top { flex-direction: column; gap: 32px; }
+  .p-home-stats { width: 100%; margin-top: 0; }
+}
+
+/* --------------------------------------------------------------- Home: paste-a-role hero */
+
+.p-hero {
+  margin-top: 56px; min-height: 160px; display: flex; align-items: center; gap: 32px;
+  padding: 24px 32px; flex-wrap: wrap;
+}
+.p-hero-icon {
+  width: 56px; height: 56px; border-radius: var(--p-r-card); background: var(--p-wash);
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+.p-hero-copy { flex: 1 1 320px; min-width: 240px; }
+.p-hero-field {
+  display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 6px 0 18px;
+  border: 1px solid var(--p-line); border-radius: var(--p-r-ctl); background: var(--p-bg);
+  width: 480px; max-width: 100%; flex: 1 1 320px;
+}
+.p-hero-field input {
+  flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px;
+  color: var(--p-ink); height: 100%; cursor: pointer;
+}
+.p-hero-field input::placeholder { color: var(--p-faint); }
+.p-hero-field input:focus { outline: 0; }
+
+@media (max-width: 860px) {
+  .p-hero { flex-direction: column; align-items: stretch; text-align: left; padding: 20px; min-height: 0; }
+  .p-hero-field { width: 100%; }
+}
+
+/* ------------------------------------------------------------------------------- Home: doors */
+
+.p-doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 56px; }
+.p-door { display: block; padding: 28px; color: var(--p-ink); }
+.p-door:hover { color: var(--p-ink); }
+.p-door-icon { color: var(--p-faint); }
+.p-door-avatars { display: flex; margin-top: 20px; }
+.p-door-avatars > * { margin-left: -8px; }
+.p-door-avatars > *:first-child { margin-left: 0; }
+
+@media (max-width: 1080px) { .p-doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+@media (max-width: 860px) {
+  .p-doors { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 32px; }
+  .p-door {
+    min-height: 88px; padding: 16px 18px; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+  }
+  .p-door-desc, .p-door-avatars, .p-door-pills { display: none; }
+}
+
+/* ---------------------------------------------------------------------- People: controls */
+
+.p-controls { display: flex; align-items: center; gap: 12px; padding: 16px 20px; flex-wrap: wrap; }
+.p-controls-sep { width: 1px; height: 24px; background: var(--p-line); margin: 0 4px; }
+
+@media (max-width: 860px) { .p-controls-sep { display: none; } }
+
+.p-group-label { font-size: 14px; color: var(--p-ink-2); margin: 4px 0 -2px; }
+.p-group-label:not(:first-child) { margin-top: 16px; }
+
+/* ------------------------------------------------------------------------- People: list view */
+
+.p-list-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.p-list-table th {
+  text-align: left; font-weight: 600; color: var(--p-ink-2); font-size: 12px; text-transform: none;
+  padding: 10px 16px; border-bottom: 1px solid var(--p-line); white-space: nowrap;
+}
+.p-list-table td { padding: 14px 16px; border-bottom: 1px solid var(--p-line); vertical-align: middle; }
+.p-list-table tr:last-child td { border-bottom: 0; }
+.p-list-table tr.p-person-active { outline: none; background: var(--p-wash); }
+.p-list-table tr.p-person-muted { opacity: .72; }
+.p-list-row-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.p-list-row-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-list-table-wrap { overflow-x: auto; }
+
+/* ------------------------------------------------------------------------------- The Target */
+
+.p-target-legend { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--p-ink-2); flex-wrap: wrap; }
+.p-target-canvas svg { display: block; max-width: 100%; }
+.p-target-ring { fill: none; stroke: var(--p-line); }
+.p-target-ring-strong { stroke: var(--p-accent); stroke-opacity: .4; }
+.p-target-tick { font-size: 10px; fill: var(--p-faint); }
+.p-target-label { font-size: 11px; fill: var(--p-ink); opacity: .85; }
+.p-target-label-on { font-weight: 600; opacity: 1; }
+.p-target-dot { transition: cx var(--p-base) var(--p-ease), cy var(--p-base) var(--p-ease), r var(--p-fast) var(--p-ease), opacity var(--p-base) var(--p-ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  .p-target-dot { transition-duration: .01ms; }
+}
